@@ -1,4 +1,4 @@
-#!/bin/env python23
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 """
 -----------------------------------------------------------------------------
@@ -99,8 +99,8 @@ def affiche_jetons(jetons, bonus):
     
 def affiche_jetons_gui(jetons, bonus, taille_cell):
     """
-    Q6) Affiche le plateau des jetons dans
-    
+    Q6) Affiche le plateau des jetons dans un interface graphical
+    avec Tkinter.
     """
     root = tkinter.Tk()
     root.title("Le Scrabble")
@@ -138,13 +138,57 @@ def affiche_jetons_gui(jetons, bonus, taille_cell):
                                text = jeton_act)
     root.mainloop()
 
+    
 # PARTIE 2 : LA PIOCHE #########################################################
 
 def init_pioche_alea():
+    """
+    Q7) genere une liste aleatore de jetons.
+    """
     pioche = [jeton for jeton in "ABCDEFGHIJKLMNOPQRSTUVWXYZ??"]
     for i in range(80):
         nouv_let = chr(random.randint(ord('A'), ord('Z')))
         pioche.append(nouv_let)
+    return pioche
+
+
+def piocher(x, sac):
+    """
+    Q8) pioche le sac pour x jetons.
+    """
+    jetons_pioches = []
+    for i in range(x):
+        pos_alea = random.randint(0, len(sac)-1)
+        jetons_pioches.append(sac.pop(pos_alea))
+    return jetons_pioches
+
+
+def completer_main(main, sac):
+    """
+    Q9) complete la main a 7 jetons.
+    """
+    nombre_jetons = min(7 - len(main), len(sac))
+    main += piocher(nombre_jetons, sac)
+
+
+def echanger(jetons, main, sac):
+    """
+    Q10) echange les jetons dans la main avec des nouveaux jetons
+    pris dans le sac.
+    """
+    nombre_jetons = len(jetons)
+    for jeton in jetons:
+        if jeton not in main:
+            return False
+    if len(sac) < nombre_jetons or len(sac) == 0:
+        return False
+
+    for jeton in jetons:
+        main.remove(jeton)
+    main += piocher(nombre_jetons, sac)
+    sac += jetons
+    return True
+
 
 # PARTIE 3 : CONSTRUCTIONS DE MOTS #############################################
 
@@ -161,7 +205,6 @@ def generer_dictfr(nf = 'littre.txt'):
 
 
 # PARTIE 4 : VALEUR D'UN MOT ###################################################
-
 
 def generer_dico():
     """Dictionnaire des jetons.
@@ -188,12 +231,48 @@ def generer_dico():
 # MAIN PROGRAM  ################################################################
 
 if __name__ == "__main__":
-    # Q3: genere et affiche le plateau
+    """
+    Q3: genere et affiche le plateau.
+    """
     jetons = init_jetons()
-    jetons[0][0] = 'B'
-    jetons[1][1] = 'C'
-    jetons[2][3] = 'A'
     jetons[14][14] = 'E'
     bonus = init_bonus()
     affiche_jetons(jetons, bonus)
     affiche_jetons_gui(jetons, bonus, 50)
+
+    """
+    Q11: test des fonctions de la partie 2.
+    """
+    sac = init_pioche_alea()
+    joueur1_main = piocher(7, sac)
+    joueur2_main = piocher(7, sac)
+
+    # commence le jeu pour j1
+    print("Joueur 1, votre main est: ", end = '')
+    for jeton in joueur1_main:
+        print(f"{jeton} ", end = '')
+    print()
+    
+    ask_j1 = input("Echangez la main? ")
+    echanger_jetons = [jeton for jeton in ask_j1]
+    echanger(echanger_jetons, joueur1_main, sac)
+        
+    print("Joueur 1, votre main est: ", end = '')
+    for jeton in joueur1_main:
+        print(f"{jeton} ", end = '')
+    print('\n')
+
+    # commence le jeu pour j2
+    print("Joueur 2, votre main est: ", end = '')
+    for jeton in joueur2_main:
+        print(f"{jeton} ", end = '')
+    print()
+    
+    ask_j2 = input("Echangez la main? ")
+    echanger_jetons = [jeton for jeton in ask_j2]
+    echanger(echanger_jetons, joueur2_main, sac)
+
+    print("Joueur 2, votre main est: ", end = '')
+    for jeton in joueur2_main:
+        print(f"{jeton} ", end = '')
+    print()
