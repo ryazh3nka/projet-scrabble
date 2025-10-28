@@ -12,7 +12,8 @@ Arna BARLUBAYEVA <arna.barlubayeva@etu-univ-grenoble-alpes.fr>
 # IMPORTS ######################################################################
 
 from pathlib import Path  # gestion fichiers
-import tkinter as tk
+import random
+import tkinter
 
 # CONSTANTES ###################################################################
 
@@ -89,54 +90,62 @@ def affiche_jetons(jetons, bonus):
     for ligne in range(TAILLE_PLATEAU):
         print("|---" * TAILLE_PLATEAU + '|')
         for col in range(TAILLE_PLATEAU):
-            cur_char = jetons[ligne][col] or ' '
-            cur_bonus = BONUS_SYMBOLS.get(bonus[ligne][col], ' ')
-            print(f"| {cur_char}{cur_bonus}", end = '')
+            jeton_act = jetons[ligne][col] or ' '
+            bonus_act = BONUS_SYMBOLS.get(bonus[ligne][col], ' ')
+            print(f"| {jeton_act}{bonus_act}", end = '')
         print('|')
     print("|---" * TAILLE_PLATEAU + '|')
 
     
-def affiche_jetons_gui(jetons, bonus, cell_size):
+def affiche_jetons_gui(jetons, bonus, taille_cell):
     """
     Q6) Affiche le plateau des jetons dans
     
     """
-    root = tk.Tk()
+    root = tkinter.Tk()
     root.title("Le Scrabble")
     
-    canvas = tk.Canvas(root,
-                       width = cell_size*TAILLE_PLATEAU,
-                       height = cell_size*TAILLE_PLATEAU)
+    canvas = tkinter.Canvas(root,
+                       width = taille_cell*TAILLE_PLATEAU,
+                       height = taille_cell*TAILLE_PLATEAU)
     canvas.pack()
 
     for ligne in range(TAILLE_PLATEAU):
         for col in range(TAILLE_PLATEAU):
-            x1 = ligne * cell_size
-            y1 = col * cell_size
-            x2 = ligne * cell_size + cell_size
-            y2 = col * cell_size + cell_size
+            x1 = ligne * taille_cell
+            y1 = col * taille_cell
+            x2 = ligne * taille_cell + taille_cell
+            y2 = col * taille_cell + taille_cell
 
-            cur_bonus = bonus[ligne][col]
-            color = "white"
-            match cur_bonus:
-                case "MT": color = "red"
-                case "MD": color = "yellow"
-                case "LT": color = "blue"
-                case "LD": color = "green"
+            bonus_act = bonus[ligne][col]
+            couleur = "white"
+            match bonus_act:
+                case "MT": couleur = "red"
+                case "MD": couleur = "yellow"
+                case "LT": couleur = "blue"
+                case "LD": couleur = "green"
             canvas.create_rectangle(x1, y1,
                                     x2, y2,
-                                    fill = color,
+                                    fill = couleur,
                                     outline = "black")
 
-            cur_char = jetons[ligne][col]
-            color = "black"
+            jeton_act = jetons[ligne][col]
+            couleur = "black"
             canvas.create_text((x1 + x2) / 2,
                                (y1 + y2) / 2,
-                               fill = "black",
-                               font = ("Arial", int(cell_size / 2)),
-                               text = cur_char)
+                               fill = couleur,
+                               font = ("Arial", int(taille_cell / 2)),
+                               text = jeton_act)
     root.mainloop()
-    
+
+# PARTIE 2 : LA PIOCHE #########################################################
+
+def init_pioche_alea():
+    pioche = [jeton for jeton in "ABCDEFGHIJKLMNOPQRSTUVWXYZ??"]
+    for i in range(80):
+        nouv_let = chr(random.randint(ord('A'), ord('Z')))
+        pioche.append(nouv_let)
+
 # PARTIE 3 : CONSTRUCTIONS DE MOTS #############################################
 
 def generer_dictfr(nf = 'littre.txt'):
