@@ -273,12 +273,20 @@ def generer_dico():
             jetons[l] = {'occ': int(o), 'val': int(v)}
     return jetons
 
+def init_pioche(dico):
+    """
+    Q20)
+    """
+    res = []
+    for let in dico:
+        res += [let] * dico[let]['occ']
+    return res
 
 # MAIN PROGRAM  ################################################################
 
 if __name__ == "__main__":
     """
-    Q3: genere et affiche le plateau.
+    Q3) genere et affiche le plateau.
     """
     jetons = init_jetons()
     jetons[14][14] = 'E'
@@ -287,9 +295,14 @@ if __name__ == "__main__":
     affiche_jetons_gui(jetons, bonus, 50)
     
     """
-    Q11: test des fonctions de la partie 2.
+    Q11) test des fonctions de la partie 2.
+    Q19-20) genere le sac avec init_pioche() plutot
+         qu'avec init_pioche_alea()
     """
-    sac = init_pioche_alea()
+    #sac = init_pioche_alea()
+    dico = generer_dico()
+    print(dico['K']['occ'], dico['Z']['val'])
+    sac = init_pioche(dico)
     joueur1_main = piocher(7, sac)
     joueur2_main = piocher(7, sac)
 
@@ -325,7 +338,6 @@ if __name__ == "__main__":
     print("\n")
     print(f"DEBUG: sac length is {len(sac)}\n")
 
-    
     """
     Q12)
     """
@@ -346,3 +358,4 @@ if __name__ == "__main__":
     """
     print(mot_jouable("STEGANOGRAPHIE", list("PARTIES"), 1))
     print(mots_jouables(mots_fr, list("PARTIES"), 1))
+    print()
