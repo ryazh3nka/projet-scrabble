@@ -340,22 +340,24 @@ if __name__ == "__main__":
 
     """
     Q12)
-    """
     mots_fr = generer_dictfr("littre.txt")
     print(len(mots_fr))
     for mot in mots_fr:
         if mot[0] == 'U': print(mot)
+    """
 
     """
     Q13-14)
-    """
     print(len(select_mot_initiale(mots_fr, 'Y')))
     print(len(select_mot_longueur(mots_fr, 19)))
     print()
+    """
+
     
     """
     Q15-17)
-    """
+    
     print(mot_jouable("STEGANOGRAPHIE", list("PARTIES"), 1))
     print(mots_jouables(mots_fr, list("PARTIES"), 1))
     print()
+    """
