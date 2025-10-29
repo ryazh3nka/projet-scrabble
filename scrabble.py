@@ -177,15 +177,19 @@ def echanger(jetons, main, sac):
     pris dans le sac.
     """
     nombre_jetons = len(jetons)
+    remplacer = [] # les positions des jetons qu'on doit remplacer dans la main
     for jeton in jetons:
         if jeton not in main:
             return False
+        else:
+            remplacer.append(main.index(jeton))
     if len(sac) < nombre_jetons or len(sac) == 0:
         return False
 
-    for jeton in jetons:
-        main.remove(jeton)
-    main += piocher(nombre_jetons, sac)
+    jetons_pioches = piocher(nombre_jetons, sac)
+    for i in range(nombre_jetons):
+        main[remplacer[i]] = jetons_pioches[i]
+        
     sac += jetons
     return True
 
