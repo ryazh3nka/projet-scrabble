@@ -11,17 +11,17 @@ Arna BARLUBAYEVA <arna.barlubayeva@etu-univ-grenoble-alpes.fr>
 
 # IMPORTS ######################################################################
 
-from pathlib import Path  # gestion fichiers
+from pathlib import Path
 import random
 import tkinter
 
 # CONSTANTES ###################################################################
 
-TAILLE_PLATEAU = 15  # taille du plateau de jeu
+TAILLE_PLATEAU = 15
 
-TAILLE_MARGE = 4  # taille marge gauche (qui contient les numéros de ligne)
+TAILLE_MARGE = 4
 
-JOKER = '?'  # jeton joker
+JOKER = '?'
 
 BONUS_SYMBOLS = {
     "MT": '!',
@@ -166,16 +166,18 @@ def echanger(jetons, main, sac):
     pris dans le sac.
     """
     nombre_remp = len(jetons)
-    remplacer = [] # les positions des jetons qu'on doit remplacer dans la main
+    if len(sac) < nombre_remp or len(sac) == 0:
+        return False
+    
     for jeton in jetons:
         if jeton not in main:
             return False
-        else:
-            ind_remplacer = main.index(jeton)
-            remplacer.append(ind_remplacer)
-            main[ind_remplacer] = ''
-    if len(sac) < nombre_remp or len(sac) == 0:
-        return False
+    
+    remplacer = [] # les positions des jetons qu'on doit remplacer dans la main
+    for jeton in jetons:
+        ind_remplacer = main.index(jeton)
+        remplacer.append(ind_remplacer)
+        main[ind_remplacer] = ''
 
     jetons_pioches = piocher(nombre_remp, sac)
     for i in range(nombre_remp):
@@ -282,82 +284,140 @@ def init_pioche(dico):
         res += [let] * dico[let]['occ']
     return res
 
+def valeur_mot(mot, dico):
+    """
+    Q22)
+    """
+    val = 0
+    for let in mot:
+        val += dico[let]['val']
+    if len(mot) == 7: val += 50
+    return val
+
+def meilleur_mot(mots_fr, ll, dico):
+    """
+    Q23)
+    """
+    mots_j = mots_jouables(mots_fr, ll, 0)
+    val_max = -1
+    meil_mot = ''
+    for mot in mots_j:
+        val = valeur_mot(mot, dico)
+        if val > val_max:
+            val_max = val
+            meil_mot = mot
+    return meil_mot
+
+def meilleurs_mots(mots_fr, ll, dico):
+    """
+    Q24)
+    """
+    meil_mots = []
+    meil_mot_val = len(meilleur_mot(mots_fr, ll, dico))
+    mots_j = mots_jouables(mots_fr, ll, 0)
+    for mot in mots_j:
+        val = valeur_mot(mot, dico)
+        if val == meil_mot_val:
+            meil_mots.append(mot)
+    return meil_mots
+
+# PARTIE 5 : PREMIER PROGRAMME PRINCIPAL #######################################
+
+def tour_joueur(joueur, tour_action, sac, dico):
+    """
+    Q25)
+    """
+    match tour_action:
+        case "echanger":
+            jetons_echanges = input("echanger: ")
+            if echanger(list(jetons_echanges), joueur["main"], sac):
+                joueur["d_tour"] = False
+            else:
+                joueur["d_tour"] = True
+        case "proposer":
+            termine = False
+            mot_propose = ''
+            while not termine or mot_propose != "!pass":
+                mot_propose = input("proposer: ")
+                if mot_jouable(mot_propose, joueur["main"], 0):
+                    termine = True
+            if (mot_propose != "!pass"):
+                val = valeur_mot(mot_propose, dico)
+                print("La valeur de votre mot est {val}")
+                joueur["score"] += val
+                for let in mot_propose:
+                    joueur["main"].remove(let)
+                completer_main(joueur["main"], sac)
+                joueur["d_tour"] = False
+            else:
+                joueur["d_tour"] = True
+        case _:
+            joueur["d_tour"] = True
+    
+def partie_terminee(joueurs, sac):
+    """
+    Q26)
+    """
+    tous_passes = True
+    for joueur in joueurs:
+        if not joueur["d_tour"]:
+            tous_passes = False
+        if joueur["main"] == [] and sac == []:
+            print("DEBUG: GAME ENDED BECAUSE THE HAND AND SACK ARE EMPTY")
+            return True
+    if tous_passes:
+        print("DEBUG: GAME ENDED BECAUSE ALL PLAYERS PASSED")
+    return tous_passes
+
+def joueur_suivant(n, d_joue):
+    """
+    Q27)
+    """
+    return (d_joue + 1) % n
+
+def init_joueurs(n):
+    joueurs = [{"nom": '', "score": 0, "main": [], "d_tour": False }
+               for _ in range(n)]
+    for i in range(n):
+        nom = input(f"Joueur {i}, tapez votre nom : ")
+        joueurs[i]["nom"] = nom
+    return joueurs
+        
 # MAIN PROGRAM  ################################################################
 
 if __name__ == "__main__":
     """
-    Q3) genere et affiche le plateau.
-    """
+    Q28)
+    """    
+    n_joueurs = int(input("Nombre de joueurs ? "))
+    joueurs = init_joueurs(n_joueurs)
     jetons = init_jetons()
-    jetons[14][14] = 'E'
     bonus = init_bonus()
-    affiche_jetons(jetons, bonus)
-    affiche_jetons_gui(jetons, bonus, 50)
     
-    """
-    Q11) test des fonctions de la partie 2.
-    Q19-20) genere le sac avec init_pioche() plutot
-         qu'avec init_pioche_alea()
-    """
-    #sac = init_pioche_alea()
     dico = generer_dico()
-    print(dico['K']['occ'], dico['Z']['val'])
     sac = init_pioche(dico)
-    joueur1_main = piocher(7, sac)
-    joueur2_main = piocher(7, sac)
+    mots_ft = generer_dictfr("littre.txt")
 
-    print(f"DEBUG: sac length is {len(sac)}\n")
-    # commence le jeu pour j1
-    print("Joueur 1, votre main est: ", end = '')
-    for jeton in joueur1_main:
-        print(f"{jeton} ", end = '')
-    print()
+    joueur_suiv = 0
+    for joueur in joueurs:
+        completer_main(joueur["main"], sac)
     
-    ask_j1 = input("Echangez la main? ")
-    echanger_jetons = [jeton for jeton in ask_j1]
-    echanger(echanger_jetons, joueur1_main, sac)
+    while True:
+        #affiche_jetons(jetons, bonus)
+        cur_joueur = joueurs[joueur_suiv]
+        print(f"Joueur {cur_joueur['nom']},\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+        tour_action = input("passer/echanger/proposer? ")
+        tour_joueur(cur_joueur, tour_action, sac, dico)
         
-    print("Joueur 1, votre main est: ", end = '')
-    for jeton in joueur1_main:
-        print(f"{jeton} ", end = '')
-    print('\n')
-
-    # commence le jeu pour j2
-    print("Joueur 2, votre main est: ", end = '')
-    for jeton in joueur2_main:
-        print(f"{jeton} ", end = '')
-    print()
-    
-    ask_j2 = input("Echangez la main? ")
-    echanger_jetons = [jeton for jeton in ask_j2]
-    echanger(echanger_jetons, joueur2_main, sac)
-
-    print("Joueur 2, votre main est: ", end = '')
-    for jeton in joueur2_main:
-        print(f"{jeton} ", end = '')
-    print("\n")
-    print(f"DEBUG: sac length is {len(sac)}\n")
-
-    """
-    Q12)
-    mots_fr = generer_dictfr("littre.txt")
-    print(len(mots_fr))
-    for mot in mots_fr:
-        if mot[0] == 'U': print(mot)
-    """
-
-    """
-    Q13-14)
-    print(len(select_mot_initiale(mots_fr, 'Y')))
-    print(len(select_mot_longueur(mots_fr, 19)))
-    print()
-    """
-
-    
-    """
-    Q15-17)
-    
-    print(mot_jouable("STEGANOGRAPHIE", list("PARTIES"), 1))
-    print(mots_jouables(mots_fr, list("PARTIES"), 1))
-    print()
-    """
+        if partie_terminee(joueurs, sac):
+            # TODO: deduct points if there are letters left in hands
+            max_score = -1
+            vainqueur = "ERROR"
+            for joueur in joueurs:
+                if joueur["score"] > max_score:
+                    max_score = joueur["score"]
+                    vainqueur = joueur
+            print(f"Le vainqueur est {vainqueur['nom']} avec {max_score} points")
+            break
+        joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
+        print()
