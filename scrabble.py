@@ -337,13 +337,14 @@ def tour_joueur(joueur, tour_action, sac, dico):
         case "proposer":
             termine = False
             mot_propose = ''
-            while not termine or mot_propose != "!pass":
+            while not termine and mot_propose != "!pass":
                 mot_propose = input("proposer: ")
-                if mot_jouable(mot_propose, joueur["main"], 0):
+                if mot_jouable(list(mot_propose), joueur["main"], 0):
+                    print("DEBUG: mot jouable")
                     termine = True
             if (mot_propose != "!pass"):
                 val = valeur_mot(mot_propose, dico)
-                print("La valeur de votre mot est {val}")
+                print(f"La valeur de votre mot est {val}")
                 joueur["score"] += val
                 for let in mot_propose:
                     joueur["main"].remove(let)
@@ -385,7 +386,7 @@ def init_joueurs(n):
         
 # MAIN PROGRAM  ################################################################
 
-if __name__ == "__main__":
+def main():
     """
     Q28)
     """    
@@ -400,8 +401,9 @@ if __name__ == "__main__":
 
     joueur_suiv = 0
     for joueur in joueurs:
-        completer_main(joueur["main"], sac)
-    
+        joueur["main"] = ['B', 'A', 'N', 'A', 'N', 'E', '?']
+        #completer_main(joueur["main"], sac)
+
     while True:
         #affiche_jetons(jetons, bonus)
         cur_joueur = joueurs[joueur_suiv]
@@ -421,3 +423,5 @@ if __name__ == "__main__":
             break
         joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
         print()
+
+main()
