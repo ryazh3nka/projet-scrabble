@@ -66,6 +66,13 @@ def init_bonus() :
 
     return plt_bonus
 
+def init_jetons():
+    return [["" for i in range(15)] for i in range(15)]
+
+# def affiche_jetons(j):
+#     print
+#     for i in range(TAILLE_PLATEAU):
+
 
 # PARTIE 3 : CONSTRUCTIONS DE MOTS #############################################
 
