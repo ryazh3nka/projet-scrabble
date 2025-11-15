@@ -21,6 +21,8 @@ TAILLE_PLATEAU = 15
 
 TAILLE_MARGE = 4
 
+TAILLE_SAC = 102
+
 JOKER = '?'
 
 BONUS_SYMBOLS = {
@@ -77,18 +79,32 @@ def init_jetons():
     plt_jetons = [['' for j in range(TAILLE_PLATEAU)] for i in range(TAILLE_PLATEAU)]
     return plt_jetons
 
+def ind_prefix(ind):
+    s_ind = str(ind)
+    if len(s_ind) == 1:
+        s_ind = '0' + s_ind
+    return s_ind
+
 def affiche_jetons(jetons, bonus):
     """
     Q3) Affiche le plateau des jetons.
     """
-    for ligne in range(TAILLE_PLATEAU):
-        print("|---" * TAILLE_PLATEAU + '|')
-        for col in range(TAILLE_PLATEAU):
-            jeton_act = jetons[ligne][col] or ' '
-            bonus_act = BONUS_SYMBOLS.get(bonus[ligne][col], ' ')
+    print(' ' * TAILLE_MARGE + ' ', end='')
+    for i in range(1, TAILLE_PLATEAU + 1):
+        print(ind_prefix(i) + "  ", end = '')
+    print()
+    
+    for i in range(TAILLE_PLATEAU):
+        ligne = i + 1
+        print(' ' * TAILLE_MARGE + "|---" * TAILLE_PLATEAU + '|')
+        print(' ' + ind_prefix(ligne) + ' ', end = '')
+        for j in range(TAILLE_PLATEAU):
+            col = j
+            jeton_act = jetons[i][j] or ' '
+            bonus_act = BONUS_SYMBOLS.get(bonus[i][j], ' ')
             print(f"| {jeton_act}{bonus_act}", end = '')
         print('|')
-    print("|---" * TAILLE_PLATEAU + '|')
+    print(' ' * TAILLE_MARGE + "|---" * TAILLE_PLATEAU + '|')
     
 def affiche_jetons_gui(jetons, bonus, taille_cell):
     """
@@ -138,11 +154,7 @@ def init_pioche_alea():
     Q7) genere une liste aleatore de jetons.
     """
     pioche = [jeton for jeton in "ABCDEFGHIJKLMNOPQRSTUVWXYZ??"]
-    for i in range(80):
-        nouv_let = chr(random.randint(ord('A'), ord('Z')))
-        pioche.append(nouv_let)
-    return pioche
-
+    for i in range(TAILLE_SAC - len(toke
 def piocher(x, sac):
     """
     Q8) pioche le sac pour x jetons.
@@ -331,9 +343,9 @@ def tour_joueur(joueur, tour_action, sac, dico):
         case "echanger":
             jetons_echanges = input("echanger: ")
             if echanger(list(jetons_echanges), joueur["main"], sac):
-                joueur["d_tour"] = False
+                joueur["pass"] = False
             else:
-                joueur["d_tour"] = True
+                joueur["pass"] = True
         case "proposer":
             termine = False
             mot_propose = ''
@@ -349,11 +361,11 @@ def tour_joueur(joueur, tour_action, sac, dico):
                 for let in mot_propose:
                     joueur["main"].remove(let)
                 completer_main(joueur["main"], sac)
-                joueur["d_tour"] = False
+                joueur["pass"] = False
             else:
-                joueur["d_tour"] = True
+                joueur["pass"] = True
         case _:
-            joueur["d_tour"] = True
+            joueur["pass"] = True
     
 def partie_terminee(joueurs, sac):
     """
@@ -361,7 +373,7 @@ def partie_terminee(joueurs, sac):
     """
     tous_passes = True
     for joueur in joueurs:
-        if not joueur["d_tour"]:
+        if not joueur["pass"]:
             tous_passes = False
         if joueur["main"] == [] and sac == []:
             print("DEBUG: GAME ENDED BECAUSE THE HAND AND SACK ARE EMPTY")
@@ -377,13 +389,16 @@ def joueur_suivant(n, d_joue):
     return (d_joue + 1) % n
 
 def init_joueurs(n):
-    joueurs = [{"nom": '', "score": 0, "main": [], "d_tour": False }
+    joueurs = [{"nom": '', "score": 0, "main": [], "pass": False }
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
         joueurs[i]["nom"] = nom
     return joueurs
-        
+
+# PARTIE 6 : PLACEMENT DE MOT ##################################################
+
+
 # MAIN PROGRAM  ################################################################
 
 def main():
@@ -401,25 +416,31 @@ def main():
 
     joueur_suiv = 0
     for joueur in joueurs:
-        joueur["main"] = ['B', 'A', 'N', 'A', 'N', 'E', '?']
-        #completer_main(joueur["main"], sac)
-
+        #joueur["main"] = ['B', 'A', 'N', 'A', 'N', 'E', '?']
+        completer_main(joueur["main"], sac)
+        
+    print()
+    affiche_jetons(jetons, bonus)
+    
     while True:
         #affiche_jetons(jetons, bonus)
         cur_joueur = joueurs[joueur_suiv]
-        print(f"Joueur {cur_joueur['nom']},\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+        print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
         tour_action = input("passer/echanger/proposer? ")
         tour_joueur(cur_joueur, tour_action, sac, dico)
         
         if partie_terminee(joueurs, sac):
             # TODO: deduct points if there are letters left in hands
             max_score = -1
-            vainqueur = "ERROR"
+            vainqueur = {"nom": "ERROR"}
             for joueur in joueurs:
+                for let in joueur["main"]:
+                    joueur["score"] -= dico[let]['val']
+                joueur["score"] = max(0, joueur["score"])
                 if joueur["score"] > max_score:
                     max_score = joueur["score"]
                     vainqueur = joueur
-            print(f"Le vainqueur est {vainqueur['nom']} avec {max_score} points")
+            print(f"\nLe vainqueur est {vainqueur['nom']} avec {max_score} points")
             break
         joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
         print()
