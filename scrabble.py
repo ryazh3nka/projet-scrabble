@@ -204,7 +204,7 @@ def echanger(jetons, main, sac):
 
 # PARTIE 3 : CONSTRUCTIONS DE MOTS #############################################
 
-def generer_dictfr(nf = 'littre.txt'):
+def generer_dictfr(nf = "littre.txt"):
     """Liste des mots Français en majuscules sans accent.
 
     >>> len(generer_dictfr())
@@ -219,19 +219,13 @@ def select_mot_initiale(mots_fr, let):
     """
     Q13)
     """
-    res = []
-    for mot in mots_fr:
-        if mot[0] == let: res.append(mot)
-    return res
+    return [mot for mot in mots_fr if mot[0] == let]
 
 def select_mot_longueur(mots_fr, lgr):
     """
     Q14)
     """
-    res = []
-    for mot in mots_fr:
-        if len(mot) == lgr: res.append(mot)
-    return res
+    return [mot for mot in mots_fr if len(mot) == lgr]
 
 def mot_jouable(mot, ll, nombre_manq):
     """
