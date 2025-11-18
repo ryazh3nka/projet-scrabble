@@ -224,7 +224,7 @@ def select_mot_initiale(mots_fr, let):
         if mot[0] == let: res.append(mot)
     return res
 
-def select_mot_longueur(mots_ft, lgr):
+def select_mot_longueur(mots_fr, lgr):
     """
     Q14)
     """
