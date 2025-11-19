@@ -231,26 +231,17 @@ def mot_jouable(mot, ll, nombre_manq):
     """
     Q15)
     """
-    tmp = [let for let in ll]
-    let_manq = 0
-    for let in mot:
-        let_trouve = False
-        for i in range(len(tmp)):
-            if let == tmp[i]:
-                tmp.pop(i)
-                let_trouve = True
-                break
-        if not let_trouve:
-            let_manq += 1
-
-    nombre_jokers = 0
-    for let in tmp:
-        if let == '?':
-            nombre_jokers += 1
-    
-    if let_manq - nombre_jokers > nombre_manq:
-        return False
-    return True
+    ll_copy = list(ll)
+    lettres_supprimes = 0
+    i = 0
+    while i < len(ll_copy):
+        if ll_copy[i] in mot:
+            ll_copy.pop(i)
+            lettres_supprimes += 1
+        i += 1
+    if len(ll_copy) == len(mot) - lettres_supprimes:
+        return True
+    return False
 
 def mots_jouables(mots_fr, ll, nombre_manq):
     """
@@ -428,7 +419,6 @@ def main():
         tour_joueur(cur_joueur, tour_action, sac, dico)
         
         if partie_terminee(joueurs, sac):
-            # TODO: deduct points if there are letters left in hands
             max_score = -1
             vainqueur = {"nom": "ERROR"}
             for joueur in joueurs:
