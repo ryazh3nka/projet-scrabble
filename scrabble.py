@@ -149,15 +149,15 @@ def affiche_jetons_gui(jetons, bonus, taille_cell):
     
 # PARTIE 2 : LA PIOCHE #########################################################
 
-def piocher(x, sac):
+def init_pioche_alea():
     """
-    Q8) pioche le sac pour x jetons.
+    Q7) genere une liste aleatore de jetons.
     """
-    jetons_pioches = []
-    for i in range(x):
-        pos_alea = random.randint(0, len(sac)-1)
-        jetons_pioches.append(sac.pop(pos_alea))
-    return jetons_pioches
+    pioche = [jeton for jeton in "ABCDEFGHIJKLMNOPQRSTUVWXYZ??"]
+    for i in range(80):
+        nouv_let = chr(random.randint(ord('A'), ord('Z')))
+        pioche.append(nouv_let)
+    return pioche
 
 def piocher(x, sac):
     """

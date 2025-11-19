@@ -7,3 +7,4 @@ tramp
 __pycache__/
 *.pyc
 *.pyo
+brouillon.py
