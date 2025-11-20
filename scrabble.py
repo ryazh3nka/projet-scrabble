@@ -239,19 +239,17 @@ def mot_jouable(mot, ll, nombre_manq):
             ll_copy.pop(i)
             lettres_supprimes += 1
         i += 1
-    if len(ll_copy) == len(mot) - lettres_supprimes:
-        return True
-    return False
+    return len(ll_copy) + lettres_supprimes - len(mot) <= nombre_manq
 
 def mots_jouables(mots_fr, ll, nombre_manq):
     """
     Q16)
     """
-    res = []
-    for mot in mots_fr:
-        if mot_jouable(mot, ll, nombre_manq):
-            res.append(mot)
-    return res
+    return [mot for mot in mots_fr if mot_jouable(mot, ll, nombre_manq)]
+    # for mot in mots_fr:
+    #     if mot_jouable(mot, ll, nombre_manq):
+    #         res.append(mot)
+    # return res
 
 # PARTIE 4 : VALEUR D'UN MOT ###################################################
 
