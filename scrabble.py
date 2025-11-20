@@ -238,8 +238,14 @@ def mot_jouable(mot, ll, nombre_manq):
         if ll_copy[i] in mot:
             ll_copy.pop(i)
             lettres_supprimes += 1
-        i += 1
-    return len(ll_copy) + lettres_supprimes - len(mot) <= nombre_manq
+        else:
+            i += 1
+
+    num_jokers = 0
+    for let in ll_copy:
+        if let == '?':
+            num_jokers += 1
+    return len(mot) - lettres_supprimes - num_jokers <= nombre_manq
 
 def mots_jouables(mots_fr, ll, nombre_manq):
     """
