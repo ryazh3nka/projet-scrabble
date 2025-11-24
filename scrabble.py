@@ -176,6 +176,14 @@ def completer_main(main, sac):
     nombre_jetons = min(7 - len(main), len(sac))
     main += piocher(nombre_jetons, sac)
 
+def dans_la_main(main, ll):
+    ll_copy = list(ll)
+    while len(ll_copy) != 0:
+        if ll[0] not in main:
+            return False
+        ll_copy.pop(0)
+    return True
+    
 def echanger(jetons, main, sac):
     """
     Q10) echange les jetons dans la main avec des nouveaux jetons
@@ -185,10 +193,9 @@ def echanger(jetons, main, sac):
     if len(sac) < nombre_remp or len(sac) == 0:
         return False
     
-    for jeton in jetons:
-        if jeton not in main:
-            return False
-    
+    if not dans_la_main(main, jetons):
+        return False
+
     remplacer = [] # les positions des jetons qu'on doit remplacer dans la main
     for jeton in jetons:
         ind_remplacer = main.index(jeton)
@@ -227,7 +234,7 @@ def select_mot_longueur(mots_fr, lgr):
     """
     return [mot for mot in mots_fr if len(mot) == lgr]
 
-def mot_jouable(mot, ll, nombre_manq):
+def mot_jouable(mot, ll, nombre_manq = 0):
     """
     Q15)
     """
@@ -245,6 +252,9 @@ def mot_jouable(mot, ll, nombre_manq):
     for let in ll_copy:
         if let == '?':
             num_jokers += 1
+
+    # len(mot) - lettres_supprimes is the amount of letters we need to cover with jokers
+    # nombre_manq is the number of non-covered letters we're allowed to have
     return len(mot) - lettres_supprimes - num_jokers <= nombre_manq
 
 def mots_jouables(mots_fr, ll, nombre_manq):
@@ -328,37 +338,43 @@ def meilleurs_mots(mots_fr, ll, dico):
 
 # PARTIE 5 : PREMIER PROGRAMME PRINCIPAL #######################################
 
-def tour_joueur(joueur, tour_action, sac, dico):
+def tour_joueur(joueur, sac, dico):
     """
     Q25)
     """
-    match tour_action:
-        case "echanger":
-            jetons_echanges = input("echanger: ")
-            if echanger(list(jetons_echanges), joueur["main"], sac):
-                joueur["pass"] = False
-            else:
-                joueur["pass"] = True
-        case "proposer":
-            termine = False
-            mot_propose = ''
-            while not termine and mot_propose != "!pass":
-                mot_propose = input("proposer: ")
-                if mot_jouable(list(mot_propose), joueur["main"], 0):
-                    print("DEBUG: mot jouable")
-                    termine = True
-            if (mot_propose != "!pass"):
-                val = valeur_mot(mot_propose, dico)
-                print(f"La valeur de votre mot est {val}")
-                joueur["score"] += val
-                for let in mot_propose:
-                    joueur["main"].remove(let)
-                completer_main(joueur["main"], sac)
-                joueur["pass"] = False
-            else:
-                joueur["pass"] = True
-        case _:
-            joueur["pass"] = True
+    reessayer = True
+    while reessayer:
+        joueur["dtour"] = input("passer/echanger/proposer? ")
+
+        match joueur["dtour"]:
+            case "echanger":
+                jetons_echanges = input("echanger ('!ret' pour retourner): ")
+                while not dans_la_main(joueur["main"], jetons_echanges) and jetons_echanges != "!ret":
+                    jetons_echanges = input("echanger ('!ret' pour retourner): ")
+                    
+                if jetons_echanges != "!ret":
+                    if echanger(list(jetons_echanges), joueur["main"], sac):
+                        reessayer = False
+                    else:
+                        print("Impossible de piocher.")
+            case "proposer":
+                mot_propose = input("proposer ('!ret' pour retourner): ")
+                while mot_jouable(list(mot_propose), joueur["main"], 0) and mot_propose != "!ret":
+                    mot_propose = input("proposer ('!ret' pour retourner): ")
+                    
+                if (mot_propose != "!ret"):
+                    val = valeur_mot(mot_propose, dico)
+                    print(f"La valeur de votre mot est {val}")
+                    joueur["score"] += val
+                    for let in mot_propose:
+                        joueur["main"].remove(let)
+                    completer_main(joueur["main"], sac)
+                    reessayer = False
+            case "passer":
+                reessayer = False
+            case _:
+                print("Choix invalid. Reessayez.")
+        print()
     
 def partie_terminee(joueurs, sac):
     """
@@ -366,10 +382,10 @@ def partie_terminee(joueurs, sac):
     """
     tous_passes = True
     for joueur in joueurs:
-        if not joueur["pass"]:
+        if joueur["dtour"] != "passer":
             tous_passes = False
         if joueur["main"] == [] and sac == []:
-            print("DEBUG: GAME ENDED BECAUSE THE HAND AND SACK ARE EMPTY")
+            print("DEBUG: GAME ENDED BECAUSE ONE OF THE HANDS AND THE SACK ARE EMPTY")
             return True
     if tous_passes:
         print("DEBUG: GAME ENDED BECAUSE ALL PLAYERS PASSED")
@@ -382,7 +398,7 @@ def joueur_suivant(n, d_joue):
     return (d_joue + 1) % n
 
 def init_joueurs(n):
-    joueurs = [{"nom": '', "score": 0, "main": [], "pass": False }
+    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "" }
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
@@ -391,7 +407,19 @@ def init_joueurs(n):
 
 # PARTIE 6 : PLACEMENT DE MOT ##################################################
 
+def lire_coords():
+    """
+    Q28)
+    """
+    x, y = map(int, input().split())
+    return x, y
 
+def tester_placement(plateau, i, j, dir, mot):
+    """
+    Q29)
+    """
+    return True
+    
 # MAIN PROGRAM  ################################################################
 
 def main():
@@ -419,8 +447,7 @@ def main():
         #affiche_jetons(jetons, bonus)
         cur_joueur = joueurs[joueur_suiv]
         print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
-        tour_action = input("passer/echanger/proposer? ")
-        tour_joueur(cur_joueur, tour_action, sac, dico)
+        tour_joueur(cur_joueur, sac, dico)
         
         if partie_terminee(joueurs, sac):
             max_score = -1
@@ -435,6 +462,5 @@ def main():
             print(f"\nLe vainqueur est {vainqueur['nom']} avec {max_score} points")
             break
         joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
-        print()
 
 main()
