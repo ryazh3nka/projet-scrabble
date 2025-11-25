@@ -339,29 +339,29 @@ def meilleurs_mots(mots_fr, ll, dico):
 # PARTIE 5 : PREMIER PROGRAMME PRINCIPAL #######################################
 
 def tour_joueur(joueur, sac, dico):
+    # TODO: check if the word is allowed via mots_fr.
     """
     Q25)
     """
     reessayer = True
     while reessayer:
         joueur["dtour"] = input("passer/echanger/proposer? ")
-
+        
         match joueur["dtour"]:
             case "echanger":
                 jetons_echanges = input("echanger ('!ret' pour retourner): ")
                 while not dans_la_main(joueur["main"], jetons_echanges) and jetons_echanges != "!ret":
-                    jetons_echanges = input("echanger ('!ret' pour retourner): ")
-                    
+                    jetons_echanges = input("echanger ('!ret' pour retourner): ")                    
                 if jetons_echanges != "!ret":
                     if echanger(list(jetons_echanges), joueur["main"], sac):
                         reessayer = False
                     else:
                         print("Impossible de piocher.")
+                    
             case "proposer":
                 mot_propose = input("proposer ('!ret' pour retourner): ")
-                while mot_jouable(list(mot_propose), joueur["main"], 0) and mot_propose != "!ret":
-                    mot_propose = input("proposer ('!ret' pour retourner): ")
-                    
+                while not mot_jouable(list(mot_propose), joueur["main"], 0) and mot_propose != "!ret":
+                    mot_propose = input("proposer ('!ret' pour retourner): ")                    
                 if (mot_propose != "!ret"):
                     val = valeur_mot(mot_propose, dico)
                     print(f"La valeur de votre mot est {val}")
@@ -370,8 +370,10 @@ def tour_joueur(joueur, sac, dico):
                         joueur["main"].remove(let)
                     completer_main(joueur["main"], sac)
                     reessayer = False
+                    
             case "passer":
                 reessayer = False
+                
             case _:
                 print("Choix invalid. Reessayez.")
         print()
@@ -414,11 +416,88 @@ def lire_coords():
     x, y = map(int, input().split())
     return x, y
 
+def case_hors_limites(x, y):
+    if not 0 < x < TAILLE_PLATEAU or not 0 < y < TAILLE_PLATEAU:
+        return True
+    return False
+
+def jetons_adjacents(plateau, x, y, dir):
+    case_gauche = (x - 1, y)
+    case_droit = (x + 1, y)
+    case_bas = (x, y - 1)
+    case_haut = (x, y + 1)
+
+def coord_suiv(plateau, x, y, dir):
+    match dir:
+        case "bas":
+            return (x, y - 1)
+        case "haut":
+            return (x, y + 1)
+        case "droit":
+            return (x + 1, y)
+    return (x, y)
+
+def case_finale(x, y, mot_len, dir):
+    match dir:
+        case "bas":
+            return (x, y - (mot_len - 1))
+        case "haut":
+            return (x, y + mot_len - 1)
+        case "droit":
+            return (x + mot_len - 1, y)
+    return x, y
+
+def a_voisins(plateau, x, y, dir):
+    # renvoie les voisins dans l'ordre suivant:
+    # gauche - bas - haut - droit SAUF celui qui est dans la direction dir_ignore
+    # on a besoin de dir_ignore car on ne doit pas compter les lettres
+    # qu'on vient de placer ce tour
+    match dir:
+        case "gauche": dir_ignore = "droit"
+        case "bas": dir_ignore = "haut"
+        case "haut": dir_ignore = "bas"
+        case "droit": dir_ignore = "gauche"
+    
+    directions = {
+        "gauche": (-1, 0),
+        "bas": (0, -1),
+        "haut": (0, 1),
+        "droit": (1, 0)
+    }
+
+    for dir, (dx, dy) in directions.items():
+        if dir == dir_ignore: continue
+        nx, ny = x + dx, y + dy
+
+        if 0 <= nx <= TAILLE_PLATEAU - 1 and 0 <= ny <= TAILLE_PLATEAU - 1:
+            if plateau[nx][ny] != '':
+                return True
+
+    return False
+    
 def tester_placement(plateau, i, j, dir, mot):
     """
     Q29)
     """
-    return True
+    mot_len = len(mot)
+
+    x, y = i - 1, j - 1
+    x_fin, y_fin = case_dern(x, y, mot)
+    
+    if case_hors_limites(x, y) or case_hors_limites(x_fin, y_fin):
+        return False
+
+    voisins = False # le mot est-il connecte avec d'autres mots sur le plateau ?
+    for i in range(mot_len):
+        if not (plateau[x][y] == '' or plateau[x][y] == mot[i]):
+            # le cas ou on essaye de recouvrir une case avec une autre lettre
+            return False
+
+        if not voisins:
+            voisins = a_voisins(plateau, x, y, dir)
+        
+    # le placement est valide si il y a les cases voisines non-vides 
+    return voisins
     
 # MAIN PROGRAM  ################################################################
 
@@ -431,9 +510,9 @@ def main():
     jetons = init_jetons()
     bonus = init_bonus()
     
-    dico = generer_dico()
+    dico = generer_dico() # combien vaut chaque lettre
     sac = init_pioche(dico)
-    mots_ft = generer_dictfr("littre.txt")
+    mots_fr = generer_dictfr("littre.txt")
 
     joueur_suiv = 0
     for joueur in joueurs:
