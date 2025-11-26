@@ -427,7 +427,7 @@ def jetons_adjacents(plateau, x, y, dir):
     case_bas = (x, y - 1)
     case_haut = (x, y + 1)
 
-def case_suiv(plateau, x, y, dir):
+def case_suiv(x, y, dir):
     match dir:
         case "bas":
             return x, y - 1
@@ -495,36 +495,41 @@ def tester_placement(plateau, i, j, dir, mot):
             # le cas ou on essaye de recouvrir une case avec une autre lettre
             return False
         elif let_cour == mot[i] or let_cour == "START":
-            # si on tombe sur une case avec une lettre,
-            # c'est garanti qu'il y a des voisins
-            # + le cas exceptionnel pour le tout premier
-            # mot sur le tableau
+            # si on tombe sur une case avec une lettre, c'est garanti qu'il y a des voisins
+            # + le cas exceptionnel pour le tout premier mot sur le tableau
             if not voisins:
                 voisins = True
         elif let_cour == '':
             if not voisins:
                 # verifie s'il y a des jetons sur les cases adjacantes
                 voisins = a_voisins(plateau, x, y, dir)
-        
+        x, y = case_suiv(x, y, dir)
     # le placement est valide s'il y a des cases voisines non-vides
     return voisins
 
 def placer_mot(plateau, main, i, j, dir, mot):
+    """
+    Q30)
+    """
     if not tester_placement(plateau, i, j, dir, mot):
         return False
     
     x, y = i - 1, j - 1
     mot_len = len(mot)
-    
-    a_completer = 0
-    for i in range(mot_len):
-        # do the same as in a_voisins
-        # except look if the current cell
-        # is not empty
-        pass
 
-    jouable = mot_jouable(main, mot)
-    return
+    lettres_placees = 0
+    for i in range(mot_len):
+        if plateau[x][y] != '':
+            lettres_placees += 1
+        x, y = case_suivante(x, y, dir)
+        
+    if mot_jouable(mot, main, lettres_placees):
+        for i in range(mot_len):
+            if plateau[x][y] == '':
+                plateau[x][y] = mot[i]
+                main.remove(mot[i])
+        return True
+    return False
 
 # MAIN PROGRAM  ################################################################
 
