@@ -321,14 +321,14 @@ def meilleur_mot(mots_fr, ll, dico):
         if val > val_max:
             val_max = val
             meil_mot = mot
-    return meil_mot
+    return meil_mot, val_max
 
 def meilleurs_mots(mots_fr, ll, dico):
     """
     Q24)
     """
     meil_mots = []
-    meil_mot_val = len(meilleur_mot(mots_fr, ll, dico))
+    meil_mot_val = meilleur_mot(mots_fr, ll, dico)[1]
     mots_j = mots_jouables(mots_fr, ll, 0)
     for mot in mots_j:
         val = valeur_mot(mot, dico)
