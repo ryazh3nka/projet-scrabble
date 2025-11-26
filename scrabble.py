@@ -427,24 +427,24 @@ def jetons_adjacents(plateau, x, y, dir):
     case_bas = (x, y - 1)
     case_haut = (x, y + 1)
 
-def coord_suiv(plateau, x, y, dir):
+def case_suiv(plateau, x, y, dir):
     match dir:
         case "bas":
-            return (x, y - 1)
+            return x, y - 1
         case "haut":
-            return (x, y + 1)
+            return x, y + 1
         case "droit":
-            return (x + 1, y)
-    return (x, y)
+            return x + 1, y
+    return x, y
 
 def case_finale(x, y, mot_len, dir):
     match dir:
         case "bas":
-            return (x, y - (mot_len - 1))
+            return x, y - (mot_len - 1)
         case "haut":
-            return (x, y + mot_len - 1)
+            return x, y + mot_len - 1
         case "droit":
-            return (x + mot_len - 1, y)
+            return x + mot_len - 1, y
     return x, y
 
 def a_voisins(plateau, x, y, dir):
@@ -452,6 +452,7 @@ def a_voisins(plateau, x, y, dir):
     # gauche - bas - haut - droit SAUF celui qui est dans la direction dir_ignore
     # on a besoin de dir_ignore car on ne doit pas compter les lettres
     # qu'on vient de placer ce tour
+    
     match dir:
         case "gauche": dir_ignore = "droit"
         case "bas": dir_ignore = "haut"
@@ -482,7 +483,7 @@ def tester_placement(plateau, i, j, dir, mot):
     mot_len = len(mot)
 
     x, y = i - 1, j - 1
-    x_fin, y_fin = case_dern(x, y, mot)
+    x_fin, y_fin = case_finale(x, y, mot)
     
     if case_hors_limites(x, y) or case_hors_limites(x_fin, y_fin):
         return False
@@ -496,7 +497,7 @@ def tester_placement(plateau, i, j, dir, mot):
         elif let_cour == mot[i] or let_cour == "START":
             # si on tombe sur une case avec une lettre,
             # c'est garanti qu'il y a des voisins
-            # + un cas exceptionnel pour le tout premier
+            # + le cas exceptionnel pour le tout premier
             # mot sur le tableau
             if not voisins:
                 voisins = True
@@ -507,6 +508,23 @@ def tester_placement(plateau, i, j, dir, mot):
         
     # le placement est valide s'il y a des cases voisines non-vides
     return voisins
+
+def placer_mot(plateau, main, i, j, dir, mot):
+    if not tester_placement(plateau, i, j, dir, mot):
+        return False
+    
+    x, y = i - 1, j - 1
+    mot_len = len(mot)
+    
+    a_completer = 0
+    for i in range(mot_len):
+        # do the same as in a_voisins
+        # except look if the current cell
+        # is not empty
+        pass
+
+    jouable = mot_jouable(main, mot)
+    return
 
 # MAIN PROGRAM  ################################################################
 
