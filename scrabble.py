@@ -487,18 +487,27 @@ def tester_placement(plateau, i, j, dir, mot):
     if case_hors_limites(x, y) or case_hors_limites(x_fin, y_fin):
         return False
 
-    voisins = False # le mot est-il connecte avec d'autres mots sur le plateau ?
+    voisins = False
     for i in range(mot_len):
-        if not (plateau[x][y] == '' or plateau[x][y] == mot[i]):
+        let_cour = plateau[x][y]
+        if not (let_cour == '' or let_cour == mot[i] or let_cour == "START"):
             # le cas ou on essaye de recouvrir une case avec une autre lettre
             return False
-
-        if not voisins:
-            voisins = a_voisins(plateau, x, y, dir)
+        elif let_cour == mot[i] or let_cour == "START":
+            # si on tombe sur une case avec une lettre,
+            # c'est garanti qu'il y a des voisins
+            # + un cas exceptionnel pour le tout premier
+            # mot sur le tableau
+            if not voisins:
+                voisins = True
+        elif let_cour == '':
+            if not voisins:
+                # verifie s'il y a des jetons sur les cases adjacantes
+                voisins = a_voisins(plateau, x, y, dir)
         
-    # le placement est valide si il y a les cases voisines non-vides 
+    # le placement est valide s'il y a des cases voisines non-vides
     return voisins
-    
+
 # MAIN PROGRAM  ################################################################
 
 def main():
