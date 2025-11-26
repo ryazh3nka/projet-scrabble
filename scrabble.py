@@ -264,11 +264,11 @@ def mot_jouable(mot, main, lettres_deja_placees):
     besoin_jokers = len(mot_copy)
     return besoin_jokers - num_jokers <= 0
 
-def mots_jouables(mots_fr, ll, nombre_manq):
+def mots_jouables(mots_fr, ll, lettres_deja_places):
     """
     Q16)
     """
-    return [mot for mot in mots_fr if mot_jouable(mot, ll, '')]
+    return [mot for mot in mots_fr if mot_jouable(mot, ll, lettres_deja_places)]
     # for mot in mots_fr:
     #     if mot_jouable(mot, ll, ''):
     #         res.append(mot)
@@ -320,7 +320,7 @@ def meilleur_mot(mots_fr, ll, dico):
     """
     Q23)
     """
-    mots_j = mots_jouables(mots_fr, ll, 0)
+    mots_j = mots_jouables(mots_fr, ll, '')
     val_max = -1
     meil_mot = ''
     for mot in mots_j:
@@ -336,7 +336,7 @@ def meilleurs_mots(mots_fr, ll, dico):
     """
     meil_mots = []
     meil_mot_val = meilleur_mot(mots_fr, ll, dico)[1]
-    mots_j = mots_jouables(mots_fr, ll, 0)
+    mots_j = mots_jouables(mots_fr, ll, '')
     for mot in mots_j:
         val = valeur_mot(mot, dico)
         if val == meil_mot_val:
@@ -361,17 +361,16 @@ def case_suiv(x, y, dir):
 def case_finale(x, y, mot_len, dir):
     match dir:
         case "bas":
-            return x, y - (mot_len - 1)
+            return x, y + (mot_len - 1)
         case "droit":
             return x + mot_len - 1, y
     return x, y
 
 def a_voisins(plateau, x, y, dir):
-    # renvoie les voisins dans l'ordre suivant:
-    # gauche - bas - haut - droit SAUF celui qui est dans la direction dir_ignore
+    # renvoie si la case a des voisin non-vides
+    
     # on a besoin de dir_ignore car on ne doit pas compter les lettres
     # qu'on vient de placer ce tour
-    
     match dir:
         case "gauche": dir_ignore = "droit"
         case "bas": dir_ignore = "haut"
@@ -609,3 +608,27 @@ def main():
         joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
 
 main()
+
+"""
+TODO:
+1) account for ALL words creating after placing a word, not only the one the user entered, e.g:
+
+    GOURMET
+CHATON
+
+(the user just entered GOURMET and played 3 words at the same time)
+
+2) account for placing the same word in the same way, e.g:
+3) account for continuing the word in the same direction, e.g:
+
+ B 
+BANANE
+ N
+ A
+ N
+ E
+
+and writing ANANE from (2, 2) to the right or down
+
+4) correctly count score points
+"""
