@@ -516,12 +516,10 @@ def tour_joueur(plateau, joueur, sac, dico, mots_fr):
                     else:
                         break
                 if (mot_propose != "!RET"):
-                    # val = valeur_mot(mot_propose, dico)
+                    val = valeur_mot(mot_propose, dico)
                     # print(f"La valeur de votre mot est {val}")
-                    # joueur["score"] += val
-                    # for let in mot_propose:
-                    #     joueur["main"].remove(let)
-                    # completer_main(joueur["main"], sac)
+                    joueur["score"] += val
+                    completer_main(joueur["main"], sac)
                     print("DEBUG:", plateau[7][7])
                     reessayer = False
                     
@@ -631,4 +629,6 @@ BANANE
 and writing ANANE from (2, 2) to the right or down
 
 4) correctly count score points
+
+5) remove jokers from hand
 """
