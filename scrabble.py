@@ -32,7 +32,7 @@ BONUS_SYMBOLS = {
     "LD": '$'
 }
 
-START = (7, 7)
+TOUR = 1
 
 # PARTIE 1 : LE PLATEAU ########################################################
 
@@ -395,7 +395,10 @@ def voisin_orthogonal(plateau, x, y, let_cour, dir):
     return voisin
 
 def a_voisins(plateau, x, y, dir):
-    # renvoie si la case a des voisin non-vides
+    """
+    renvoie si la case a des voisin non-vides
+    """
+    if TOUR == 1: return True # cas special
     
     # on a besoin de dir_ignore car on ne doit pas compter les lettres
     # qu'on vient de placer ce tour
@@ -412,16 +415,13 @@ def a_voisins(plateau, x, y, dir):
         "droit": (1, 0)
     }
 
-    if (x, y) == START: return True # cas special
     
     for c_dir, (dx, dy) in directions.items():
         if c_dir == dir_ignore: continue
         nx, ny = x + dx, y + dy
 
         if 0 <= nx <= TAILLE_PLATEAU - 1 and 0 <= ny <= TAILLE_PLATEAU - 1:
-            if plateau[ny][nx] != '' and (ny, nx) != START:
-                return True
-            if (ny, nx) == START and c_dir == dir:
+            if plateau[ny][nx] != '':
                 return True
 
     return False
@@ -450,12 +450,15 @@ def tester_placement(plateau, x, y, dir, mot):
             # le cas ou on essaye de recouvrir une case avec une autre lettre
             print(f"DEBUG: tester_placement(): trying to overwrite a letter at {x} {y}")
             return []
-        if a_voisins(plateau, x, y, dir):
-            voisins = True
         elif let_cour == '':
             lettres_manq.append(mot[i])
+
+        if a_voisins(plateau, x, y, dir):
+            voisins = True
         x, y = case_suiv(x, y, dir)
 
+    print(voisins)
+    print(lettres_manq)
     if not voisins:
         return []
     return lettres_manq
@@ -608,6 +611,7 @@ def main():
     joueurs = init_joueurs(n_joueurs)
     jetons = init_jetons()
     bonus = init_bonus()
+    global TOUR
     
     dico = generer_dico() # combien vaut chaque lettre
     sac = init_pioche(dico)
@@ -615,18 +619,21 @@ def main():
 
     joueur_suiv = 0
     for joueur in joueurs:
-        #joueur["main"] = ['B', 'A', 'N', 'A', 'N', 'E', '?']
         completer_main(joueur["main"], sac)
 
     # DELETE THIS
     joueurs[0]["main"] = ['O', 'N']
     joueurs[1]["main"] = ['G', 'O']
+
+    joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+    joueurs[1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
     
     while True:
         affiche_jetons(jetons, bonus)
         cur_joueur = joueurs[joueur_suiv]
         print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
         tour_joueur(jetons, cur_joueur, sac, dico, mots_fr)
+        TOUR += 1
         
         if partie_terminee(joueurs, sac):
             max_score = -1
