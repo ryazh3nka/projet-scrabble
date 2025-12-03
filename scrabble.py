@@ -34,11 +34,13 @@ BONUS_SYMBOLS = {
 
 TOUR = 1
 
+MOTS_PLACES = False
+
 # PARTIE 1 : LE PLATEAU ########################################################
 
 def symetrise_liste(lst) :
     """
-    Auxilliaire pour Q1 : symétrise en place la liste lst.
+    auxilliaire pour Q1 : symétrise en place la liste lst.
     EB : modification de lst.
 
     >>> essai = [1,2] ; symetrise_liste(essai) ; essai
@@ -51,7 +53,7 @@ def symetrise_liste(lst) :
 
 def init_bonus():
     """
-    Q1) Initialise le plateau des bonus.
+    Q1) initialise le plateau des bonus
     """
     # Compte-tenu  de  la  double   symétrie  axiale  du  plateau,  on
     # a  7  demi-lignes  dans  le  quart  supérieur  gauche,  puis  la
@@ -76,7 +78,7 @@ def init_bonus():
 
 def init_jetons():
     """
-    Q2) Initialise le plateau des jetons.
+    Q2) initialise le plateau des jetons
     """
     plt_jetons = [['' for j in range(TAILLE_PLATEAU)] for i in range(TAILLE_PLATEAU)]
     return plt_jetons
@@ -89,7 +91,7 @@ def ind_prefix(ind):
 
 def affiche_jetons(jetons, bonus):
     """
-    Q3) Affiche le plateau des jetons.
+    Q3) affiche le plateau des jetons
     """
     print(' ' * TAILLE_MARGE + ' ', end='')
     for i in range(1, TAILLE_PLATEAU + 1):
@@ -110,8 +112,8 @@ def affiche_jetons(jetons, bonus):
     
 def affiche_jetons_gui(jetons, bonus, taille_cell):
     """
-    Q6) Affiche le plateau des jetons dans un interface graphical
-    avec Tkinter.
+    Q6) affiche le plateau des jetons dans un interface graphical
+    avec Tkinter
     """
     root = tkinter.Tk()
     root.title("Le Scrabble")
@@ -147,13 +149,13 @@ def affiche_jetons_gui(jetons, bonus, taille_cell):
                                fill = couleur,
                                font = ("Arial", int(taille_cell / 2)),
                                text = jeton_act)
-    root.mainloop()
+    root.mainloop() # TODO: change this (now this stalls the program)
     
 # PARTIE 2 : LA PIOCHE #########################################################
 
 def init_pioche_alea():
     """
-    Q7) genere une liste aleatore de jetons.
+    Q7) genere une liste aleatore de jetons
     """
     pioche = [jeton for jeton in "ABCDEFGHIJKLMNOPQRSTUVWXYZ??"]
     for i in range(80):
@@ -163,7 +165,7 @@ def init_pioche_alea():
 
 def piocher(x, sac):
     """
-    Q8) pioche le sac pour x jetons.
+    Q8) pioche le sac pour x jetons
     """
     jetons_pioches = []
     for i in range(x):
@@ -173,7 +175,7 @@ def piocher(x, sac):
 
 def completer_main(main, sac):
     """
-    Q9) complete la main a 7 jetons.
+    Q9) complete la main a 7 jetons
     """
     nombre_jetons = min(7 - len(main), len(sac))
     main += piocher(nombre_jetons, sac)
@@ -189,7 +191,7 @@ def dans_la_main(main, ll):
 def echanger(jetons, main, sac):
     """
     Q10) echange les jetons dans la main avec des nouveaux jetons
-    pris dans le sac.
+    pris dans le sac
     """
     nombre_remp = len(jetons)
     if len(sac) < nombre_remp or len(sac) == 0:
@@ -214,7 +216,7 @@ def echanger(jetons, main, sac):
 # PARTIE 3 : CONSTRUCTIONS DE MOTS #############################################
 
 def generer_dictfr(nf = "littre.txt"):
-    """Liste des mots Français en majuscules sans accent.
+    """liste des mots Français en majuscules sans accent
 
     >>> len(generer_dictfr())
     73085
@@ -226,23 +228,28 @@ def generer_dictfr(nf = "littre.txt"):
 
 def select_mot_initial(mots_fr, let):
     """
-    Q13)
+    Q13) renvoit les mots commencant par `let`
     """
     return [mot for mot in mots_fr if mot[0] == let]
 
 def select_mot_longueur(mots_fr, lgr):
     """
-    Q14)
+    Q14) renvoit les mots de longueur `lgr`
     """
     return [mot for mot in mots_fr if len(mot) == lgr]
 
 def mot_jouable(mot, main):
     """
-    Q15) 
+    Q15) renvoit si `mot` est jouable a partir des lettres dans `main`
+    cette fonction ne verifie pas si `mot` est bien un mot valide,
+    seulement si on peut le jouer
     """
     main_copie = list(main)
     mot_copie = list(mot)
-    
+
+    # on supprime toutes les lettres dans `mot_copie` qui sont
+    # aussi presentes dans `main_copie` pour savoir
+    # combien de jokers on a besoin
     i = 0
     while i < len(main_copie):
         if main_copie[i] in mot_copie:
@@ -260,7 +267,8 @@ def mot_jouable(mot, main):
 
 def mots_jouables(mots_fr, ll, lettres_deja_places):
     """
-    Q16)
+    Q16) renvoit toutes les mots dans `mots_fr` qui sont jouables
+    a partir des lettres dans `ll`
     """
     return [mot for mot in mots_fr if mot_jouable(mot, ll, lettres_deja_places)]
     # for mot in mots_fr:
@@ -271,7 +279,7 @@ def mots_jouables(mots_fr, ll, lettres_deja_places):
 # PARTIE 4 : VALEUR D'UN MOT ###################################################
 
 def generer_dico():
-    """Dictionnaire des jetons.
+    """dictionnaire des jetons.
 
     >>> jetons = generer_dico()
     >>> jetons['A'] == {'occ': 9, 'val': 1}
@@ -293,25 +301,49 @@ def generer_dico():
 
 def init_pioche(dico):
     """
-    Q20)
+    Q20) initialise un pioche avec en utilisant
+    `dico` ou on store le nombre d'occurences de chaque lettre
     """
     res = []
     for let in dico:
-        res += [let] * dico[let]['occ']
+        res += [let] * dico[let]["occ"]
     return res
 
 def valeur_mot(mot, dico):
     """
-    Q22)
+    Q22) un algorithme naive qui calcule la valeur d'un mot
+    comme la somme des valeurs de chaque lettre
     """
     val = 0
     for let in mot:
         val += dico[let]['val']
     return val
 
+def valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot, dico):
+    """
+    Q22) calcule la valeur de `mot` a partir de la position de sa premiere
+    lettre (`x`, `y`) et la direction `dir`. ca n'inclut PAS le bonus qu'on
+    obtient apres avoir utilise toutes les lettres de la main
+    """
+    val = 0
+    multiplicateur = 1
+    nx, ny = x, y
+    for i in range(len(mot)):
+        score_let = dico[mot[i]]["val"]
+        match bonus[ny][nx]:
+            case "MD": multiplicateur = 2
+            case "MT": multiplicateur = 3
+            case "LD": score_let *= 2
+            case "LT": score_let *= 3
+        val += score_let
+        nx, ny = case_suiv(nx, ny, dir)
+    val *= multiplicateur
+    return val
+
 def meilleur_mot(mots_fr, ll, dico):
     """
-    Q23)
+    Q23) renvoit le mot dont la valeur est la plus grande qu'on peut construire
+    a partir de `ll`. la fonction ne prend PAS en compte les bonus
     """
     mots_j = mots_jouables(mots_fr, ll, '')
     val_max = -1
@@ -325,7 +357,7 @@ def meilleur_mot(mots_fr, ll, dico):
 
 def meilleurs_mots(mots_fr, ll, dico):
     """
-    Q24)
+    Q24) renvoit la liste des meilleurs mots en utilisant meilleur_mot()
     """
     meil_mots = []
     meil_mot_val = meilleur_mot(mots_fr, ll, dico)[1]
@@ -339,11 +371,17 @@ def meilleurs_mots(mots_fr, ll, dico):
 # PARTIE 6 : PLACEMENT DE MOT ##################################################
 
 def case_hors_limites(x, y):
+    """
+    verifie que la case aux coordonnes `x`, `y` est bien sur le plateau
+    """
     if not 0 < x < TAILLE_PLATEAU or not 0 < y < TAILLE_PLATEAU:
         return True
     return False
 
 def case_suiv(x, y, dir):
+    """
+    fait un pas sur le plateau dans la direction `dir`
+    """
     match dir:
         case "gauche":
             return x - 1, y
@@ -356,6 +394,10 @@ def case_suiv(x, y, dir):
     return x, y
 
 def case_finale(x, y, mot_len, dir):
+    """
+    renvoit la derniere case d'un mot dont la longueur est `mot_len`
+    et dont la premiere lettre est pose sur `x`, `y`
+    """
     match dir:
         case "gauche":
             return x - (mot_len - 1), y
@@ -367,7 +409,86 @@ def case_finale(x, y, mot_len, dir):
             return x + (mot_len - 1), y
     return x, y
 
+def dir_opposee(dir):
+    match dir:
+        case "gauche": return "droit"
+        case "bas": return "haut"
+        case "haut": return "bas"
+        case "droit": return "gauche"
+    return dir
+
+def dir_orthogonale(dir):
+    """
+    renvoit la direction perpendiculaire a `dir`.
+    on a "haut" et "gauche" comme les valuers de retour car
+    ce sont les directions pour reconstruir un mot de la fin au debut
+    """
+    match dir:
+        case "gauche" | "droit": return "haut"
+        case "bas" | "haut": return "gauche"
+    return dir
+
+def mot_debut(plateau, x, y, dir):
+    """
+    renvoit le debut d'un mot a lequel appartient la lettre
+    sur la case `x`, `y` et l'orientation de ce mot
+    """
+    nx, ny = case_suiv(x, y, dir)
+    while 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
+        # dir est toujours "haut" ou "gauche"
+        nx, ny = case_suiv(nx, ny, dir)
+
+    dir_debut = dir_opposee(dir)
+    x_deb, y_deb = case_suiv(nx, ny, dir_debut)
+    return x_deb, y_deb, dir_debut
+        
+def a_voisins(plateau, x, y, dir):
+    """
+    renvoit si la case a des cases voisines non-vides. cette fonction
+    verifie chaque direction sauf celle opposee a `dir` (car
+    on vient de placer des lettres la)
+    """
+    # cas special:
+    # le mot n'a pas de voisins mais il est valide car c'est le tout premier mot
+    if not MOTS_PLACES: return True 
+    
+    # on a besoin de dir_ignore car on ne doit pas compter les lettres
+    # qu'on vient de placer ce tour
+    match dir:
+        case "gauche": dir_ignore = "droit"
+        case "bas": dir_ignore = "haut"
+        case "haut": dir_ignore = "bas"
+        case "droit": dir_ignore = "gauche"
+    
+    directions = {
+        "gauche": (-1, 0),
+        "bas": (0, -1),
+        "haut": (0, 1),
+        "droit": (1, 0)
+    }
+    
+    for dir_courante, (dx, dy) in directions.items():
+        if dir_courante == dir_ignore: continue
+        nx, ny = x + dx, y + dy
+
+        if 0 <= nx <= TAILLE_PLATEAU - 1 and 0 <= ny <= TAILLE_PLATEAU - 1:
+            if plateau[ny][nx] != '':
+                return True
+
+    return False
+
 def voisin_orthogonal(plateau, x, y, let_cour, dir):
+    """
+    renvoit le mot voisin pour la case `x`, `y` place
+    perpendiculairement a `dir`. cette fonction verifie chaque
+    direction perpendiculaire pour isoler les segments du mot voisin,
+    et les assemble a la fin
+
+    par exemple si on place le mot "MOT":
+     M
+    VOISIN <- on assemble "VOISIN" comme V + O + ISIN
+     T
+    """
     ort_directions = []
     match dir:
         case "droit":
@@ -388,67 +509,53 @@ def voisin_orthogonal(plateau, x, y, let_cour, dir):
         if ort_dir in ["gauche", "haut"]: segment = segment[::-1]
         segments[ort_dir] = segment
 
+    # on assemble le mot voisin
     voisin = segments.get("gauche", "") + segments.get("haut", "") + let_cour + segments.get("droit", "") + segments.get("bas", "")
-    
+
     if voisin == let_cour:
         return ''
     return voisin
 
-def a_voisins(plateau, x, y, dir):
-    """
-    renvoie si la case a des voisin non-vides
-    """
-    if TOUR == 1: return True # cas special
-    
-    # on a besoin de dir_ignore car on ne doit pas compter les lettres
-    # qu'on vient de placer ce tour
-    match dir:
-        case "gauche": dir_ignore = "droit"
-        case "bas": dir_ignore = "haut"
-        case "haut": dir_ignore = "bas"
-        case "droit": dir_ignore = "gauche"
-    
-    directions = {
-        "gauche": (-1, 0),
-        "bas": (0, -1),
-        "haut": (0, 1),
-        "droit": (1, 0)
-    }
-
-    
-    for c_dir, (dx, dy) in directions.items():
-        if c_dir == dir_ignore: continue
-        nx, ny = x + dx, y + dy
-
-        if 0 <= nx <= TAILLE_PLATEAU - 1 and 0 <= ny <= TAILLE_PLATEAU - 1:
-            if plateau[ny][nx] != '':
-                return True
-
-    return False
-
 def tester_placement(plateau, x, y, dir, mot):
     """
-    Q29)
+    Q29) teste s'il est possible de placer le mot sur `x`, `y`
+    dans la direction `dir`
+
+    cette fonction concerne seulement LE PLACEMENT, elle ne verifie
+    pas si le mot ou les mots voisins sont bien les mots valides
+
+    pour que le placement soit valide, il faut que:
+    1) chaque case ou on veut placer une lettre soit vide ou
+    contienne une lettre correspondante de notre mot
+    2) le mot soit connecte aux autres (il y a des voisins)
+    3) le mot ne soit pas hors limites du plateau
+
+    renvoit les lettres necessaires pour placer ce mot; une liste vide
+    sinon
     """
-    print(f"DEBUG: tester_placement(): trying to place {mot} at {x+1}, {y+1} to the {dir}")
-    mot_len = len(mot)
-
-    x_fin, y_fin = case_finale(x, y, mot_len, dir)
+    if dir not in ["bas", "droit"]:
+        # print(f"DEBUG: tester_placement(): {dir} est une direction invalide")
+        return []
     
+    mot_len = len(mot)
+    x_fin, y_fin = case_finale(x, y, mot_len, dir)
     if case_hors_limites(x, y) or case_hors_limites(x_fin, y_fin):
-        print("DEBUG: tester_placement(): case hors limites")
+        # print("DEBUG: tester_placement(): case hors limites")
         return []
-    elif dir not in ["bas", "droit"]:
-        print(f"DEBUG: tester_placement(): dir {dir} is incorrect")
-        return []
-
-    voisins = False # RENAME THIS TO a_voisins or something
+    
+    px, py = case_suiv(x, y, dir_opposee(dir))
+    if 0 <= px <= TAILLE_PLATEAU and 0 <= py <= TAILLE_PLATEAU:
+        if plateau[py][px] != '':
+            # print("DEBUG: tester_placement(): le mot ne commence pas par le debut")
+            return False
+        
+    voisins = False
     lettres_manq = []
     for i in range(mot_len):
         let_cour = plateau[y][x]
         if not (let_cour == '' or let_cour == mot[i]):
             # le cas ou on essaye de recouvrir une case avec une autre lettre
-            print(f"DEBUG: tester_placement(): trying to overwrite a letter at {x} {y}")
+            # print(f"DEBUG: tester_placement(): essai de reecrir un lettre a {x} {y}")
             return []
         elif let_cour == '':
             lettres_manq.append(mot[i])
@@ -457,47 +564,64 @@ def tester_placement(plateau, x, y, dir, mot):
             voisins = True
         x, y = case_suiv(x, y, dir)
 
-    print(voisins)
-    print(lettres_manq)
     if not voisins:
         return []
     return lettres_manq
 
-def placer_mot(plateau, joueur, x, y, dir, mot, mots_fr, dico):
+def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     """
-    Q30)
+    Q30) essaie de placer `mot` sur `x`, `y`, dans la direction `dir`.
+    renvoit True/False si le placement est possible/impossible
+    
+    on utilise:
+    1) tester_placement() pour savoir si les cases dont on a besoin pour
+    placer le mot sont bien vides ou contiennent deja des lettres de notre mot
+    2) mot_jouable() pour savoir si on a assez de jetons dans la main
+    pour jouer le mot
+    4) voisin_orthogonal() pour determiner si on a des mots voisins et si
+    on doit obtenir une score pour eux (le cas ou on les cree nous-memes)
+    3) valeur_mot_avec_bonus() pour calculer les scores de notre mot et des voisins
     """
     main = joueur["main"]
     mot_score = 0
 
     if mot not in mots_fr:
-        print(f"DEBUG: placer_mot(): {mot} n'est pas un mot francais")
+        print(f"ERROR: '{mot}' n'est pas un mot francais")
         return False
     
     lettres_manq = tester_placement(plateau, x, y, dir, mot)
     if lettres_manq == []:
-        print(f"DEBUG: placer_mot(): tester_placement(): impossible de placer le mot '{mot}' a {x+1} {y+1}")
+        print(f"ERROR: impossible de placer '{mot}' a ({x+1},{y+1})")
         return False
     
     if not mot_jouable(lettres_manq, main):
-        print("DEBUG: placer_mot(): mot_jouable() returned False")
+        print(f"ERROR: il vous manque des lettres pour joueur {mot}")
         return False
 
     nx, ny = x, y
     mot_len = len(mot)
     for i in range(mot_len):
-        voisin_ort = voisin_orthogonal(plateau, nx, ny, mot[i], dir)
-        print(f"DEBUG: placer_mot(): voisin {voisin_ort} at {nx + 1}, {ny + 1}")
-
-        if voisin_ort != '':
-            if voisin_ort not in mots_fr:
-                print(f"DEBUG: pas possible de jouer {mot}: {voisin_ort} n'est pas un mot francais")
+        voisin = voisin_orthogonal(plateau, nx, ny, mot[i], dir)
+        if voisin != '':
+            if voisin not in mots_fr:
+                print(f"ERROR: pas possible de jouer '{mot}': le mot voisin '{voisin}' n'est pas un mot francais")
                 return False
             if plateau[ny][nx] == '':
-                mot_score += valeur_mot(voisin_ort, dico)
-            
+                dir_ort = dir_orthogonale(dir)
+                x_voisin, y_voisin, dir_voisin = mot_debut(plateau, nx, ny, dir_ort)
+                voisin_score = valeur_mot_avec_bonus(plateau, bonus, x_voisin, y_voisin, dir_voisin, voisin, dico) 
+                mot_score += voisin_score
+                print(f"Vois avez joue '{voisin}' avec une score de {voisin_score}")
         nx, ny = case_suiv(nx, ny, dir)
 
+    # cas ou il y a des lettres directement apres notre mot
+    x_fin, y_fin = case_finale(x, y, mot_len, dir)
+    nx, ny = case_suiv(x_fin, y_fin, dir)
+    if 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
+        print(f"ERROR: le mot est hors limites du plateau")
+        return False
+    
+    # place le mot sur le tableau
     nx, ny = x, y
     for i in range(mot_len):
         if plateau[ny][nx] == '':
@@ -507,17 +631,25 @@ def placer_mot(plateau, joueur, x, y, dir, mot, mots_fr, dico):
             else:
                 main.remove(mot[i])
         nx, ny = case_suiv(nx, ny, dir)
-        
-    mot_score += valeur_mot(mot, dico)
+
+    mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot, dico)
+    mot_score += mot_score_sans_voisins
+    print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
     if len(joueur["main"]) == 0: mot_score += 50
     joueur["score"] += mot_score
     return True
 
 # PARTIE 5 : PREMIER PROGRAMME PRINCIPAL #######################################
 
-def tour_joueur(plateau, joueur, sac, dico, mots_fr):
+def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
     """
-    Q25)
+    Q25) gere le tour d'un joueur. la fonction lui donne un choix,
+    et en fonction de la reponse, on appelle une fonction
+    correspondante
+
+    echanger -> echanger()
+    proposer -> placer_mot()
+    passer -> pass
     """
     reessayer = True
     while reessayer:
@@ -526,7 +658,7 @@ def tour_joueur(plateau, joueur, sac, dico, mots_fr):
         match joueur["dtour"]:
             case "echanger":
                 jetons_echanges = ''
-                while True:
+                while True: # on attend une entree valide
                     jetons_echanges = input("echanger ('!RET' pour retourner): ").upper()
                     if jetons_echanges == "!RET":
                         break
@@ -544,7 +676,7 @@ def tour_joueur(plateau, joueur, sac, dico, mots_fr):
                     
             case "proposer":
                 mot_propose = ''
-                while True:
+                while True: # on attend une entree valide
                     mot_propose = input("proposer ('!RET' pour retourner): ").upper()
                     
                     if mot_propose == "!RET":
@@ -556,10 +688,11 @@ def tour_joueur(plateau, joueur, sac, dico, mots_fr):
                     x, y = map(int, input("coordonees (x y): ").split(' '))
                     dir = input("direction (bas/droit): ")
                     
-                    if not placer_mot(plateau, joueur, x - 1, y - 1, dir, mot_propose, mots_fr, dico):
+                    if not placer_mot(plateau, bonus, joueur, x - 1, y - 1, dir, mot_propose, mots_fr, dico):
                         print("Impossible de placer ce mot.")
                         continue
                     else:
+                        MOTS_PLACES = True
                         break
                 if (mot_propose != "!RET"):
                     completer_main(joueur["main"], sac)
@@ -574,26 +707,39 @@ def tour_joueur(plateau, joueur, sac, dico, mots_fr):
     
 def partie_terminee(joueurs, sac):
     """
-    Q26)
+    Q26) verifie si la partie doit terminee ce tour-ci
+    
+    les conditions de la fin de partie (quelconque est suffisante):
+    1) un joueur n'a pas de jetons dans la main et il n'y a pas
+    de jetons dans la pioche
+    2) tous les joueurs ont passe leur tour
     """
     tous_passes = True
     for joueur in joueurs:
         if joueur["dtour"] != "passer":
             tous_passes = False
         if joueur["main"] == [] and sac == []:
-            print("DEBUG: GAME ENDED BECAUSE ONE OF THE HANDS AND THE SACK ARE EMPTY")
+            # print("DEBUG: GAME ENDED BECAUSE ONE OF THE HANDS AND THE SACK ARE EMPTY")
             return True
-    if tous_passes:
-        print("DEBUG: GAME ENDED BECAUSE ALL PLAYERS PASSED")
+    # if tous_passes:
+    #     print("DEBUG: GAME ENDED BECAUSE ALL PLAYERS PASSED")
     return tous_passes
 
 def joueur_suivant(n, d_joue):
     """
-    Q27)
+    Q27) on utilise le compteur `d_joue` pour determiner
+    le joueur suivant pour `n` joueurs en total
     """
     return (d_joue + 1) % n
 
 def init_joueurs(n):
+    """
+    initialise `n` joeurs:
+    nom -> le nom du joueur
+    score -> le score du joueur
+    main -> la main du joeur
+    dtour -> l'action choisie pendant le dernier tour
+    """
     joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "" }
                for _ in range(n)]
     for i in range(n):
@@ -604,35 +750,34 @@ def init_joueurs(n):
 # MAIN PROGRAM  ################################################################
 
 def main():
-    """
-    Q28)
-    """    
     n_joueurs = int(input("Nombre de joueurs ? "))
     joueurs = init_joueurs(n_joueurs)
     jetons = init_jetons()
     bonus = init_bonus()
+
     global TOUR
+    global MOTS_PLACES
     
-    dico = generer_dico() # combien vaut chaque lettre
+    dico = generer_dico()
     sac = init_pioche(dico)
     mots_fr = generer_dictfr("littre.txt")
 
-    joueur_suiv = 0
     for joueur in joueurs:
         completer_main(joueur["main"], sac)
-
-    # DELETE THIS
-    joueurs[0]["main"] = ['O', 'N']
-    joueurs[1]["main"] = ['G', 'O']
-
+        
+    # tests (delete this later)
     joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
     joueurs[1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
+    # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
     
+    joueur_suiv = 0
+    # la boucle principale
     while True:
         affiche_jetons(jetons, bonus)
         cur_joueur = joueurs[joueur_suiv]
-        print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,\nvotre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
-        tour_joueur(jetons, cur_joueur, sac, dico, mots_fr)
+        print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,")
+        print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+        tour_joueur(jetons, bonus, cur_joueur, sac, dico, mots_fr)
         TOUR += 1
         
         if partie_terminee(joueurs, sac):
@@ -646,6 +791,7 @@ def main():
                     max_score = joueur["score"]
                     vainqueur = joueur
             print(f"\nLe vainqueur est {vainqueur['nom']} avec {max_score} points")
+            print(f"La partie a dure {TOUR} tours")
             break
         joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
 
@@ -653,40 +799,7 @@ main()
 
 """
 TODO:
-1) account for ALL words creating after placing a word, not only the one the user entered, e.g:
-
-    GOURMET
-CHATON
-
-(the user just entered GOURMET and played 3 words at the same time)
-
-DONE!
-
-2) account for placing the same word in the same way, e.g:
-
-DONE!
-
-3) account for continuing the word in the same direction, e.g:
-
- B 
-BANANE
- N
- A
- N
- E
-
-and writing ANANE from (2, 2) to the right or down
-DONE!
-
-3.5)
-
-FIX CONNECTING WORDS IN THE SAME DIRECTION
-
-__ON -> GOON shouldn't be valid
-
-4) correctly count score points
-DONE!
-
-5) remove jokers from hand
-DONE!
+- find a better way to place the first word than having to restort to the "MOTS_PLACES" global
+- input handling (stop program from breaking when there's a typo)
+- optional tasks (partie 8)
 """
