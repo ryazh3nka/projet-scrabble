@@ -547,7 +547,7 @@ def tester_placement(plateau, x, y, dir, mot):
     if 0 <= px <= TAILLE_PLATEAU and 0 <= py <= TAILLE_PLATEAU:
         if plateau[py][px] != '':
             # print("DEBUG: tester_placement(): le mot ne commence pas par le debut")
-            return False
+            return []
         
     voisins = False
     lettres_manq = []
@@ -568,6 +568,22 @@ def tester_placement(plateau, x, y, dir, mot):
         return []
     return lettres_manq
 
+def mot_existe_jokers(mot_incomplet, mots_fr):
+    """
+    ?J??
+    A-GJ
+    """
+    lgr = len(mot_incomplet)
+    mots_fr_meme_lgr = select_mot_longueur(mots_fr, lgr)
+    for mot in mots_fr_meme_lgr:
+        mot_copie = list(mot)
+        correspond = True
+        for i in range(lgr):
+            if mot_incomplet[i] != mot[i] and mot_incomplet[i] != '?':
+                correspond = False
+        if correspond: return True
+    return False
+        
 def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     """
     Q30) essaie de placer `mot` sur `x`, `y`, dans la direction `dir`.
@@ -583,9 +599,17 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     3) valeur_mot_avec_bonus() pour calculer les scores de notre mot et des voisins
     """
     main = joueur["main"]
+
+    mot_avec_jokers = ""
+    mot_copie = []
+    for let in mot:
+        if let in main:
+            mot_copie.append(let)
+        else:
+            mot_copie.append('?')
     mot_score = 0
 
-    if mot not in mots_fr:
+    if not mot_existe_jokers(mot, mots_fr):
         print(f"ERROR: '{mot}' n'est pas un mot francais")
         return False
     
@@ -601,9 +625,10 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     nx, ny = x, y
     mot_len = len(mot)
     for i in range(mot_len):
-        voisin = voisin_orthogonal(plateau, nx, ny, mot[i], dir)
+        voisin = voisin_orthogonal(plateau, nx, ny, mot_copie[i], dir)
         if voisin != '':
-            if voisin not in mots_fr:
+            if not mot_existe_jokers(voisin, mots_fr):
+            # if voisin not in mots_fr:
                 print(f"ERROR: pas possible de jouer '{mot}': le mot voisin '{voisin}' n'est pas un mot francais")
                 return False
             if plateau[ny][nx] == '':
@@ -618,21 +643,21 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     x_fin, y_fin = case_finale(x, y, mot_len, dir)
     nx, ny = case_suiv(x_fin, y_fin, dir)
     if 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
-        print(f"ERROR: le mot est hors limites du plateau")
+        print(f"ERROR: placement invalide")
         return False
     
     # place le mot sur le tableau
     nx, ny = x, y
     for i in range(mot_len):
         if plateau[ny][nx] == '':
-            plateau[ny][nx] = mot[i]
-            if mot[i] not in main:
+            if mot_copie[i] not in main:
                 main.remove('?')
             else:
-                main.remove(mot[i])
+                main.remove(mot_copie[i])
+            plateau[ny][nx] = mot_copie[i]
         nx, ny = case_suiv(nx, ny, dir)
 
-    mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot, dico)
+    mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_copie, dico)
     mot_score += mot_score_sans_voisins
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
     if len(joueur["main"]) == 0: mot_score += 50
@@ -707,7 +732,7 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
     
 def partie_terminee(joueurs, sac):
     """
-    Q26) verifie si la partie doit terminee ce tour-ci
+    Q26) verifie si la partie doit terminer ce tour-ci
     
     les conditions de la fin de partie (quelconque est suffisante):
     1) un joueur n'a pas de jetons dans la main et il n'y a pas
@@ -767,7 +792,7 @@ def main():
         
     # tests (delete this later)
     joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-    joueurs[1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
+    joueurs[1]["main"] = ['C', 'H', 'A', 'T', 'O', '?', '?']
     # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
     
     joueur_suiv = 0
