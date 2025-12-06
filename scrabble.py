@@ -636,6 +636,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
         print(f"ERROR: il vous manque des lettres pour joueur {mot}")
         return False
 
+    mot_len = len(mot)
     x_fin, y_fin = case_finale(x, y, mot_len, dir)
     nx, ny = case_suiv(x_fin, y_fin, dir)
     if 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
@@ -644,7 +645,6 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
         return False
     
     nx, ny = x, y
-    mot_len = len(mot)
     mot_score = 0
     for i in range(mot_len):
         voisin = voisin_orthogonal(plateau, nx, ny, mot_avec_jokers[i], dir)
@@ -842,9 +842,10 @@ def main():
         
         for joueur in joueurs:
             completer_main(joueur["main"], sac)
+            
         # tests
-        # joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-        # joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+        joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+        joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
         # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
 
         joueur_suiv = 0
@@ -855,7 +856,6 @@ def main():
             print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
             tour_joueur(jetons, bonus, cur_joueur, sac, dico, mots_fr)
-            STATE["tour"] += 1
 
             if partie_terminee(joueurs, sac):
                 max_score = -1
@@ -870,6 +870,8 @@ def main():
                 print(f"Le vainqueur est {STATE['vainqueur']} avec {max_score} points")
                 print(f"La partie a dure {STATE['tour']} tours\n")
                 fin_partie = True
+
+            STATE["tour"] += 1
             joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
 
         statistique = partie_obtenir_statistique()
