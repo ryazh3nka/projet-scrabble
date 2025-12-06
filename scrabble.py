@@ -23,10 +23,11 @@ TAILLE_PLATEAU = 15
 
 TAILLE_MARGE = 4
 
-TAILLE_SAC = 102
+TAILLE_PIOCHE = 102
 
 JOKER = '?'
 
+# symboles pour afficher les bonus
 BONUS_SYMBOLS = {
     "MT": '!',
     "MD": '@',
@@ -34,21 +35,24 @@ BONUS_SYMBOLS = {
     "LD": '$'
 }
 
-# i think it would be cleaner if we created a singleton object for this
-# but oh well
+# l'etat du jeu
 STATE = {
     "tour": 1,
     "joueurs": [],
     "vainqueur": "",
     "n_mots_places": 0,
-    "n_partie": 1
+    "plateau": []
 }
+
+# liste des etats des jeux passes
+HISTORIE = []
 
 def REINIT_STATE():
     STATE["tour"] = 1
     STATE["joueurs"] = []
     STATE["vainqueur"] = ""
     STATE["n_mots_places"] = 0
+    STATE["plateau"] = []
     
 # PARTIE 1 : LE PLATEAU ########################################################
 
@@ -273,7 +277,7 @@ def mot_jouable(mot, main):
 
     n_jokers = 0
     for let in main_copie:
-        if let == '?':
+        if let == JOKER:
             n_jokers += 1
 
     besoin_jokers = len(mot_copie)
@@ -593,7 +597,7 @@ def mot_existe_jokers(mot_incomplet, mots_fr):
         mot_copie = list(mot)
         correspond = True
         for i in range(lgr):
-            if mot_incomplet[i] != mot[i] and mot_incomplet[i] != '?':
+            if mot_incomplet[i] != mot[i] and mot_incomplet[i] != JOKER:
                 correspond = False
         if correspond: return True
     return False
@@ -634,7 +638,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
         if let in main:
             mot_avec_jokers.append(let)
         else:
-            mot_avec_jokers.append('?')
+            mot_avec_jokers.append(JOKER)
 
     mot_len = len(mot)
     x_fin, y_fin = case_finale(x, y, mot_len, dir)
@@ -658,7 +662,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
                 voisin_score = valeur_mot_avec_bonus(plateau, bonus, x_voisin, y_voisin, dir_voisin, voisin, dico)
                 mot_score += voisin_score
                 STATE["n_mots_places"] += 1
-                joueur["mots_places"].append(voisin)
+                joueur["mots_places"].append((voisin, voisin_score))
                 print(f"Vois avez joue '{voisin}' avec une score de {voisin_score}")
         nx, ny = case_suiv(nx, ny, dir)
     
@@ -667,7 +671,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     for i in range(mot_len):
         if plateau[ny][nx] == '':
             if mot_avec_jokers[i] not in main:
-                main.remove('?')
+                main.remove(JOKER)
             else:
                 main.remove(mot_avec_jokers[i])
             plateau[ny][nx] = mot_avec_jokers[i]
@@ -680,7 +684,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
     
     joueur["score"] += mot_score
-    joueur["mots_places"].append(mot)
+    joueur["mots_places"].append((mot, mot_score_sans_voisins))
     STATE["n_mots_places"] += 1
     return True
 
@@ -783,6 +787,7 @@ def init_joueurs(n):
     score -> le score du joueur
     main -> la main du joeur
     dtour -> l'action choisie pendant le dernier tour
+    mots_places -> pairs de type (mot, score)
     """
     joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0}
                for _ in range(n)]
@@ -793,7 +798,12 @@ def init_joueurs(n):
 
 # PARTIE 8 #####################################################################
 
-def partie_obtenir_statistique():
+def generer_statistique_partie():
+    """
+    genere la chain `statistique` prete a etre ecrite dans un fichier.
+    elle contient les scores pour chaque joueur et des infos
+    complementaires
+    """
     joueurs = STATE["joueurs"]
     vainqueur = STATE["vainqueur"]
 
@@ -820,10 +830,107 @@ def partie_obtenir_statistique():
 
     return statistique
 
+def generer_statistique_seance():
+    """
+    genere la chaine `statistique` prete a etre ecrite dans un fichier.
+    elle contient le classment des joueurs de toutes les parties
+    de ce seance, le meilleur mot joue (on ne compte PAS les bonus Scrabble ici)
+    et les meilleurs scores pour chaque joueur
+    """
+    donnees_joueurs = {}
+    
+    for partie in HISTORIE:
+        for joueur in partie["joueurs"]:
+            nom_joueur = joueur["nom"]
+            if nom_joueur not in donnees_joueurs:
+                donnees_joueurs[nom_joueur] = {
+                    "scores": [],
+                    "mots": []
+                }
+            donnees_joueurs[nom_joueur]["scores"].append(joueur["score"])
+            donnees_joueurs[nom_joueur]["mots"] += joueur["mots_places"]
+
+    # on cree une liste des pairs de type [nom, score]
+    classement_total = []
+    for nom_joueur in donnees_joueurs:
+        scores = donnees_joueurs[nom_joueur]["scores"]
+        total_score = 0
+        for score in scores:
+            total_score += score
+        classement_total.append([nom_joueur, total_score])
+
+    # on trie cette liste pour avoir le classement
+    taille = len(classement_total)
+    for i in range(taille):
+        for j in range(i + 1, taille):
+            if classement_total[j][1] > classement_total[i][1]:
+                temp = classement_total[i]
+                classement_total[i] = classement_total[j]
+                classement_total[j] = temp
+
+    top3 = []
+    index = 0
+    while index < len(classement_total) and index < 3:
+        top3.append(classement_total[index])
+        index += 1
+
+    meilleur_mot_texte = ""
+    meilleur_mot_score = -1
+    meilleur_mot_joueur = ""
+    for nom_joueur in donnees_joueurs:
+        mots = donnees_joueurs[nom_joueur]["mots"]
+        for mot_texte, score_mot in mots:
+            if score_mot > meilleur_mot_score:
+                meilleur_mot_texte = mot_texte
+                meilleur_mot_score = score_mot
+                meilleur_mot_joueur = nom_joueur
+
+    # on cree une liste des score moyennes pour chaque joueur
+    liste_moyennes = []
+    for nom_joueur in donnees_joueurs:
+        scores = donnees_joueurs[nom_joueur]["scores"]
+        total_scores = 0
+        for score in scores:
+            total_scores += score
+        moyenne_joueur = total_scores / len(scores)
+        liste_moyennes.append([nom_joueur, moyenne_joueur])
+
+    # on trie cette liste
+    taille2 = len(liste_moyennes)
+    for i in range(taille2):
+        for j in range(i + 1, taille2):
+            if liste_moyennes[j][1] > liste_moyennes[i][1]:
+                temp = liste_moyennes[i]
+                liste_moyennes[i] = liste_moyennes[j]
+                liste_moyennes[j] = temp
+
+    statistique = ""
+    statistique += "Statistiques de la seance!\n\n"
+
+    statistique += "Top 3 joueurs (score cumule) :\n"
+    pos = 1
+    for element in top3:
+        statistique += f"{str(pos)}. {element[0]} : {str(element[1])}\n"
+        pos += 1
+
+    if meilleur_mot_score != -1:
+        statistique += "\nMeilleur mot place :\n"
+        statistique += f"{meilleur_mot_texte} - {str(meilleur_mot_score)}"
+        statistique += f" points (joue par {meilleur_mot_joueur})\n"
+
+    statistique += "\nMoyenne des scores par joueur:\n"
+    for element in liste_moyennes:
+        nom_joueur = element[0]
+        moyenne_joueur = element[1]
+        statistique += f"{nom_joueur} : {str(round(moyenne_joueur, 2))}\n"
+
+    return statistique
+
 # MAIN PROGRAM  ################################################################
 
 def main():
     global STATE
+    global HISTORIE
     
     bonus = init_bonus()    
     dico = generer_dico()
@@ -833,31 +940,31 @@ def main():
     reponse_revanche = ""
     while reponse_revanche not in reponses_negatives:
         REINIT_STATE()
-        
-        sac = init_pioche(dico)
-        jetons = init_jetons()
+
+        pioche = init_pioche(dico)
+        plateau = STATE["plateau"] = init_jetons()
         
         n_joueurs = int(input("Nombre de joueurs ? "))
         joueurs = STATE["joueurs"] = init_joueurs(n_joueurs)
         
         for joueur in joueurs:
-            completer_main(joueur["main"], sac)
+            completer_main(joueur["main"], pioche)
             
         # tests (DELETE THIS)
-        # joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-        # joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+        joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+        joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
         # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
 
         joueur_suiv = 0
         fin_partie = False            
         while not fin_partie: # la boucle du jeu
-            affiche_jetons(jetons, bonus)
+            affiche_jetons(plateau, bonus)
             cur_joueur = joueurs[joueur_suiv]
-            print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,")
+            print(f"Joueur {cur_joueur['nom']},\nil reste {len(pioche)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
-            tour_joueur(jetons, bonus, cur_joueur, sac, dico, mots_fr)
+            tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
 
-            if partie_terminee(joueurs, sac):
+            if partie_terminee(joueurs, pioche):
                 max_score = -1
                 for joueur in joueurs:
                     while len(joueur["main"]) != 0:
@@ -873,19 +980,26 @@ def main():
 
             STATE["tour"] += 1
             joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
-
-        statistique = partie_obtenir_statistique()
+        HISTORIE.append(copy.deepcopy(STATE))
+        
+        statistique = generer_statistique_partie()
         # print(statistique)
         
-        reponse_enregistrer = input(f"Voulez-vous enregistrer le resultat de cette partie dans un fichier ? (Y/n) ")
-        if reponse_enregistrer not in reponses_negatives:
+        reponse_enregistrer_partie = input(f"Voulez-vous enregistrer le resultat de cette partie dans un fichier ? (Y/n) ")
+        if reponse_enregistrer_partie not in reponses_negatives:
             chemin = input(f"Saisissez le chemin d'acces : ")
             with open(chemin, 'a') as fichier:
                 fichier.write(statistique)
                 fichier.write('\n')
                     
         reponse_revanche = input(f"Voulez-vous jouer une autre partie ? (Y/n) ")
-        if reponse_revanche not in reponses_negatives:
-            STATE["n_partie"] += 1
-
+        if reponse_revanche in reponses_negatives:
+            statistique_seance = generer_statistique_seance()
+            print(statistique_seance)
+            reponse_enregistrer_seance = input(f"Voulez-vous enregistrer le recapitulatif de ce seance dans un fichier ? ")
+            if reponse_enregistrer_seance not in reponses_negatives:
+                chemin = input(f"Saisissez le chemin d'acces : ")
+                with open(chemin, 'a') as fichier:
+                    fichier.write(statistique_seance)
+            
 main()
