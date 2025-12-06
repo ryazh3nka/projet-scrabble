@@ -784,7 +784,7 @@ def init_joueurs(n):
     main -> la main du joeur
     dtour -> l'action choisie pendant le dernier tour
     """
-    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_joues": [], "n_scrabbles": 0}
+    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0}
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
@@ -811,7 +811,7 @@ def partie_obtenir_statistique():
             statistique += " (VAINQUEUR)"
         statistique += '\n'
         statistique += f"Score: {joueur['score']}\n"
-        statistique += f"Nombre de mots joues: {len(joueur['mots_joues'])}\n"
+        statistique += f"Nombre de mots joues: {len(joueur['mots_places'])}\n"
         statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}"
         if i != len(joueurs) - 1:
             statistique += '\n\n'
@@ -844,8 +844,8 @@ def main():
             completer_main(joueur["main"], sac)
             
         # tests
-        joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-        joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+        # joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+        # joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
         # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
 
         joueur_suiv = 0
