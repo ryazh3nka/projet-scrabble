@@ -34,6 +34,8 @@ BONUS_SYMBOLS = {
     "LD": '$'
 }
 
+# i think it would be cleaner if we created a singleton object for this
+# but oh well
 STATE = {
     "tour": 1,
     "joueurs": [],
@@ -42,6 +44,12 @@ STATE = {
     "n_partie": 1
 }
 
+def REINIT_STATE():
+    STATE["tour"] = 1
+    STATE["joueurs"] = []
+    STATE["vainqueur"] = ""
+    STATE["n_mots_places"] = 0
+    
 # PARTIE 1 : LE PLATEAU ########################################################
 
 def symetrise_liste(lst) :
@@ -576,8 +584,8 @@ def tester_placement(plateau, x, y, dir, mot):
 
 def mot_existe_jokers(mot_incomplet, mots_fr):
     """
-    ?J??
-    A-GJ
+    verifie si le mot `mot_incomplet` est bien un mot francais
+    prenant en compte la possibilite que des jokers soient present
     """
     lgr = len(mot_incomplet)
     mots_fr_meme_lgr = select_mot_longueur(mots_fr, lgr)
@@ -598,11 +606,13 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     on utilise:
     1) tester_placement() pour savoir si les cases dont on a besoin pour
     placer le mot sont bien vides ou contiennent deja des lettres de notre mot
-    2) mot_jouable() pour savoir si on a assez de jetons dans la main
+    2) mot_existe_jokers() pour savoir si `mot` est bel et bien un mot
+    francais
+    3) mot_jouable() pour savoir si on a assez de jetons dans la main
     pour jouer le mot
     4) voisin_orthogonal() pour determiner si on a des mots voisins et si
     on doit obtenir une score pour eux (le cas ou on les cree nous-memes)
-    3) valeur_mot_avec_bonus() pour calculer les scores de notre mot et des voisins
+    5) valeur_mot_avec_bonus() pour calculer les scores de notre mot et des voisins
     """
     main = joueur["main"]
 
@@ -626,6 +636,13 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
         print(f"ERROR: il vous manque des lettres pour joueur {mot}")
         return False
 
+    x_fin, y_fin = case_finale(x, y, mot_len, dir)
+    nx, ny = case_suiv(x_fin, y_fin, dir)
+    if 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
+        # cas ou il y a des lettres directement apres notre mot
+        print(f"ERROR: placement invalide")
+        return False
+    
     nx, ny = x, y
     mot_len = len(mot)
     mot_score = 0
@@ -644,13 +661,6 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
                 joueur["mots_places"].append(voisin)
                 print(f"Vois avez joue '{voisin}' avec une score de {voisin_score}")
         nx, ny = case_suiv(nx, ny, dir)
-
-    # cas ou il y a des lettres directement apres notre mot
-    x_fin, y_fin = case_finale(x, y, mot_len, dir)
-    nx, ny = case_suiv(x_fin, y_fin, dir)
-    if 0 <= nx <= TAILLE_PLATEAU and 0 <= ny <= TAILLE_PLATEAU and plateau[ny][nx] != '':
-        print(f"ERROR: placement invalide")
-        return False
     
     # place le mot sur le tableau
     nx, ny = x, y
@@ -822,6 +832,8 @@ def main():
     reponses_negatives = ["non", "Non", "NON", 'N', 'n', "no", "No", "NO"]
     reponse_revanche = ""
     while reponse_revanche not in reponses_negatives:
+        REINIT_STATE()
+        
         sac = init_pioche(dico)
         jetons = init_jetons()
         
@@ -875,4 +887,3 @@ def main():
             STATE["n_partie"] += 1
 
 main()
-
