@@ -606,26 +606,15 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     on utilise:
     1) tester_placement() pour savoir si les cases dont on a besoin pour
     placer le mot sont bien vides ou contiennent deja des lettres de notre mot
-    2) mot_existe_jokers() pour savoir si `mot` est bel et bien un mot
-    francais
-    3) mot_jouable() pour savoir si on a assez de jetons dans la main
+    2) mot_jouable() pour savoir si on a assez de jetons dans la main
     pour jouer le mot
+    3) mot_existe_jokers() pour savoir si `mot` est bel et bien un mot
+    francais
     4) voisin_orthogonal() pour determiner si on a des mots voisins et si
     on doit obtenir une score pour eux (le cas ou on les cree nous-memes)
     5) valeur_mot_avec_bonus() pour calculer les scores de notre mot et des voisins
     """
     main = joueur["main"]
-
-    mot_avec_jokers = []
-    for let in mot:
-        if let in main:
-            mot_avec_jokers.append(let)
-        else:
-            mot_avec_jokers.append('?')
-            
-    if not mot_existe_jokers(mot, mots_fr):
-        print(f"ERROR: '{mot}' n'est pas un mot francais")
-        return False
     
     lettres_manq = tester_placement(plateau, x, y, dir, mot)
     if lettres_manq == []:
@@ -635,6 +624,17 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     if not mot_jouable(lettres_manq, main):
         print(f"ERROR: il vous manque des lettres pour joueur {mot}")
         return False
+            
+    if mot not in mots_fr:
+        print(f"ERROR: '{mot}' n'est pas un mot francais")
+        return False
+
+    mot_avec_jokers = []
+    for let in mot:
+        if let in main:
+            mot_avec_jokers.append(let)
+        else:
+            mot_avec_jokers.append('?')
 
     mot_len = len(mot)
     x_fin, y_fin = case_finale(x, y, mot_len, dir)
@@ -843,7 +843,7 @@ def main():
         for joueur in joueurs:
             completer_main(joueur["main"], sac)
             
-        # tests
+        # tests (DELETE THIS)
         # joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
         # joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
         # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
