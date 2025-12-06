@@ -12,8 +12,10 @@ Arna BARLUBAYEVA <arna.barlubayeva@etu-univ-grenoble-alpes.fr>
 # IMPORTS ######################################################################
 
 from pathlib import Path
+from datetime import datetime
 import random
 import tkinter
+import copy
 
 # CONSTANTES ###################################################################
 
@@ -32,9 +34,13 @@ BONUS_SYMBOLS = {
     "LD": '$'
 }
 
-TOUR = 1
-
-MOTS_PLACES = False
+STATE = {
+    "tour": 1,
+    "joueurs": [],
+    "vainqueur": "",
+    "n_mots_places": 0,
+    "n_partie": 1
+}
 
 # PARTIE 1 : LE PLATEAU ########################################################
 
@@ -97,7 +103,7 @@ def affiche_jetons(jetons, bonus):
     for i in range(1, TAILLE_PLATEAU + 1):
         print(ind_prefix(i) + "  ", end = '')
     print()
-    
+
     for i in range(TAILLE_PLATEAU):
         ligne = i + 1
         print(' ' * TAILLE_MARGE + "|---" * TAILLE_PLATEAU + '|')
@@ -450,7 +456,7 @@ def a_voisins(plateau, x, y, dir):
     """
     # cas special:
     # le mot n'a pas de voisins mais il est valide car c'est le tout premier mot
-    if not MOTS_PLACES: return True 
+    if STATE["n_mots_places"] == 0: return True 
     
     # on a besoin de dir_ignore car on ne doit pas compter les lettres
     # qu'on vient de placer ce tour
@@ -600,15 +606,13 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     """
     main = joueur["main"]
 
-    mot_avec_jokers = ""
-    mot_copie = []
+    mot_avec_jokers = []
     for let in mot:
         if let in main:
-            mot_copie.append(let)
+            mot_avec_jokers.append(let)
         else:
-            mot_copie.append('?')
-    mot_score = 0
-
+            mot_avec_jokers.append('?')
+            
     if not mot_existe_jokers(mot, mots_fr):
         print(f"ERROR: '{mot}' n'est pas un mot francais")
         return False
@@ -624,18 +628,20 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
 
     nx, ny = x, y
     mot_len = len(mot)
+    mot_score = 0
     for i in range(mot_len):
-        voisin = voisin_orthogonal(plateau, nx, ny, mot_copie[i], dir)
+        voisin = voisin_orthogonal(plateau, nx, ny, mot_avec_jokers[i], dir)
         if voisin != '':
             if not mot_existe_jokers(voisin, mots_fr):
-            # if voisin not in mots_fr:
                 print(f"ERROR: pas possible de jouer '{mot}': le mot voisin '{voisin}' n'est pas un mot francais")
                 return False
-            if plateau[ny][nx] == '':
+            if plateau[ny][nx] == '': # <- verifie si on a complete le voisin ce tour
                 dir_ort = dir_orthogonale(dir)
                 x_voisin, y_voisin, dir_voisin = mot_debut(plateau, nx, ny, dir_ort)
-                voisin_score = valeur_mot_avec_bonus(plateau, bonus, x_voisin, y_voisin, dir_voisin, voisin, dico) 
+                voisin_score = valeur_mot_avec_bonus(plateau, bonus, x_voisin, y_voisin, dir_voisin, voisin, dico)
                 mot_score += voisin_score
+                STATE["n_mots_places"] += 1
+                joueur["mots_places"].append(voisin)
                 print(f"Vois avez joue '{voisin}' avec une score de {voisin_score}")
         nx, ny = case_suiv(nx, ny, dir)
 
@@ -650,18 +656,22 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     nx, ny = x, y
     for i in range(mot_len):
         if plateau[ny][nx] == '':
-            if mot_copie[i] not in main:
+            if mot_avec_jokers[i] not in main:
                 main.remove('?')
             else:
-                main.remove(mot_copie[i])
-            plateau[ny][nx] = mot_copie[i]
+                main.remove(mot_avec_jokers[i])
+            plateau[ny][nx] = mot_avec_jokers[i]
         nx, ny = case_suiv(nx, ny, dir)
 
-    mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_copie, dico)
+    mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_avec_jokers, dico)
     mot_score += mot_score_sans_voisins
+    if len(joueur["main"]) == 0:
+        mot_score += 50
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
-    if len(joueur["main"]) == 0: mot_score += 50
+    
     joueur["score"] += mot_score
+    joueur["mots_places"].append(mot)
+    STATE["n_mots_places"] += 1
     return True
 
 # PARTIE 5 : PREMIER PROGRAMME PRINCIPAL #######################################
@@ -717,7 +727,6 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
                         print("Impossible de placer ce mot.")
                         continue
                     else:
-                        MOTS_PLACES = True
                         break
                 if (mot_propose != "!RET"):
                     completer_main(joueur["main"], sac)
@@ -765,66 +774,105 @@ def init_joueurs(n):
     main -> la main du joeur
     dtour -> l'action choisie pendant le dernier tour
     """
-    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "" }
+    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_joues": [], "n_scrabbles": 0}
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
         joueurs[i]["nom"] = nom
     return joueurs
 
+# PARTIE 8 #####################################################################
+
+def partie_obtenir_statistique():
+    joueurs = STATE["joueurs"]
+    vainqueur = STATE["vainqueur"]
+
+    heure_act = datetime.now().strftime("%d-%m-%Y / %H:%M")
+    statistique = f"Partie de {heure_act}\n"
+    statistique += f"{joueurs[0]['nom']} "
+    for i in range(1, len(joueurs)):
+        statistique += f"vs. {joueurs[i]['nom']} "
+    statistique += '\n'
+    
+    for i in range(len(joueurs)):
+        joueur = joueurs[i]
+        statistique += f"Joueur {i} : {joueur['nom']}"
+        if joueur["nom"] == vainqueur:
+            statistique += " (VAINQUEUR)"
+        statistique += '\n'
+        statistique += f"Score: {joueur['score']}\n"
+        statistique += f"Nombre de mots joues: {len(joueur['mots_joues'])}\n"
+        statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}"
+        if i != len(joueurs) - 1:
+            statistique += '\n\n'
+        else:
+            statistique += '\n'
+
+    return statistique
+
 # MAIN PROGRAM  ################################################################
 
 def main():
-    n_joueurs = int(input("Nombre de joueurs ? "))
-    joueurs = init_joueurs(n_joueurs)
-    jetons = init_jetons()
-    bonus = init_bonus()
-
-    global TOUR
-    global MOTS_PLACES
+    global STATE
     
+    bonus = init_bonus()    
     dico = generer_dico()
-    sac = init_pioche(dico)
     mots_fr = generer_dictfr("littre.txt")
-
-    for joueur in joueurs:
-        completer_main(joueur["main"], sac)
-        
-    # tests (delete this later)
-    joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-    joueurs[1]["main"] = ['C', 'H', 'A', 'T', 'O', '?', '?']
-    # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
     
-    joueur_suiv = 0
-    # la boucle principale
-    while True:
-        affiche_jetons(jetons, bonus)
-        cur_joueur = joueurs[joueur_suiv]
-        print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,")
-        print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
-        tour_joueur(jetons, bonus, cur_joueur, sac, dico, mots_fr)
-        TOUR += 1
+    reponses_negatives = ["non", "Non", "NON", 'N', 'n', "no", "No", "NO"]
+    reponse_revanche = ""
+    while reponse_revanche not in reponses_negatives:
+        sac = init_pioche(dico)
+        jetons = init_jetons()
         
-        if partie_terminee(joueurs, sac):
-            max_score = -1
-            vainqueur = {"nom": "ERROR"}
-            for joueur in joueurs:
-                for let in joueur["main"]:
-                    joueur["score"] -= dico[let]['val']
-                joueur["score"] = max(0, joueur["score"])
-                if joueur["score"] > max_score:
-                    max_score = joueur["score"]
-                    vainqueur = joueur
-            print(f"\nLe vainqueur est {vainqueur['nom']} avec {max_score} points")
-            print(f"La partie a dure {TOUR} tours")
-            break
-        joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
+        n_joueurs = int(input("Nombre de joueurs ? "))
+        joueurs = STATE["joueurs"] = init_joueurs(n_joueurs)
+        
+        for joueur in joueurs:
+            completer_main(joueur["main"], sac)
+        # tests
+        # joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+        # joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+        # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
+
+        joueur_suiv = 0
+        fin_partie = False            
+        while not fin_partie: # la boucle du jeu
+            affiche_jetons(jetons, bonus)
+            cur_joueur = joueurs[joueur_suiv]
+            print(f"Joueur {cur_joueur['nom']},\nil reste {len(sac)} jetons dans le sac,")
+            print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+            tour_joueur(jetons, bonus, cur_joueur, sac, dico, mots_fr)
+            STATE["tour"] += 1
+
+            if partie_terminee(joueurs, sac):
+                max_score = -1
+                for joueur in joueurs:
+                    while len(joueur["main"]) != 0:
+                        joueur["score"] -= dico[joueur["main"].pop(0)]["val"]
+                    joueur["score"] = max(0, joueur["score"])
+                    if joueur["score"] > max_score:
+                        max_score = joueur["score"]
+                        STATE["vainqueur"] = joueur["nom"]
+                        
+                print(f"Le vainqueur est {STATE['vainqueur']} avec {max_score} points")
+                print(f"La partie a dure {STATE['tour']} tours\n")
+                fin_partie = True
+            joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
+
+        statistique = partie_obtenir_statistique()
+        # print(statistique)
+        
+        reponse_enregistrer = input(f"Voulez-vous enregistrer le resultat de cette partie dans un fichier ? (Y/n) ")
+        if reponse_enregistrer not in reponses_negatives:
+            chemin = input(f"Saisissez le chemin d'acces : ")
+            with open(chemin, 'a') as fichier:
+                fichier.write(statistique)
+                fichier.write('\n')
+                    
+        reponse_revanche = input(f"Voulez-vous jouer une autre partie ? (Y/n) ")
+        if reponse_revanche not in reponses_negatives:
+            STATE["n_partie"] += 1
 
 main()
 
-"""
-TODO:
-- find a better way to place the first word than having to restort to the "MOTS_PLACES" global
-- input handling (stop program from breaking when there's a typo)
-- optional tasks (partie 8)
-"""
