@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 -----------------------------------------------------------------------------
-i11_shirkunov_barlubayeva_projet.py : CR projet « Scrabble », groupe IMA04
+CR projet « Scrabble », groupe IMA04
 
 Aleksandr SHIRKUNOV <aleksandr.shirkunov@etu-univ-grenoble-alpes.fr>
 Arna BARLUBAYEVA <arna.barlubayeva@etu-univ-grenoble-alpes.fr>
@@ -47,9 +47,6 @@ STATE = {
     "pioche": []
 }
 
-# liste des etats des jeux passes
-HISTORIE = []
-
 def REINIT_STATE():
     STATE["tour"] = 1
     STATE["joueurs"] = []
@@ -58,7 +55,10 @@ def REINIT_STATE():
     STATE["n_mots_places"] = 0
     STATE["plateau"] = []
     STATE["pioche"] = []
-    
+
+# liste des etats des jeux passes
+HISTOIRE = []
+
 # PARTIE 1 : LE PLATEAU ########################################################
 
 def symetrise_liste(lst) :
@@ -328,7 +328,7 @@ def generer_dico():
 
 def init_pioche(dico):
     """
-    Q20) initialise un pioche avec en utilisant
+    Q20) initialise la pioche en utilisant
     `dico` ou on store le nombre d'occurences de chaque lettre
     """
     res = []
@@ -338,7 +338,7 @@ def init_pioche(dico):
 
 def valeur_mot(mot, dico):
     """
-    Q22) un algorithme naive qui calcule la valeur d'un mot
+    Q22) un algorithme naif qui calcule la valeur d'un mot
     comme la somme des valeurs de chaque lettre
     """
     val = 0
@@ -689,7 +689,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
 
     mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_avec_jokers, dico)
     mot_score += mot_score_sans_voisins
-    if len(joueur["main"]) == 0:
+    if len(lettres_manq) == 7:
         joueur["n_scrabbles"] += 1
         mot_score += 50
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
@@ -762,20 +762,20 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
 
             case "indice":
                 if joueur["indices_restants"] > 0:
-                    print("l'IA réfléchit...")
+                    print("Calculation des indices..")
                     tops = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
 
                     if not tops:
-                        print("aucune suggestion trouvée.")
+                        print("Aucune suggestion trouvee")
                     else:
-                        print(f"top 5 suggestions:")
+                        print(f"Top 5 suggestions:")
                         for i, s in enumerate(tops[:5]):
-                            d_str = "droit" if s['dir'] == "droit" else "bas"
-                            print(f"{i+1}. {s['mot']} -> ({s['x']+1}, {s['y']+1}) {d_str} | Score: ~{s['score']}")
+                            d_str = "droit" if s["dir"] == "droit" else "bas"
+                            print(f"{i+1}. {s['mot']} => ({s['x']+1}, {s['y']+1}) {d_str}. Score: {s['score']}")
                         joueur["indices_restants"] -= 1
-                        print(f"\nil vous reste {joueur['indices_restants']} indices.")
+                        print(f"\nIl vous reste {joueur['indices_restants']} indices")
                 else:
-                    print("vous avez épuisé tous vos indices pour cette partie!")
+                    print("Vous avez epuise tous vos indices pour cette partie!")
 
                     continue
                 
@@ -818,6 +818,8 @@ def init_joueurs(n):
     main -> la main du joeur
     dtour -> l'action choisie pendant le dernier tour
     mots_places -> pairs de type (mot, score)
+    n_scrabbles -> le nombre des bonus Scrabble obtenues cette partie
+    indices_restants -> combien d'indice on peut utiliser
     """
     joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0, "indices_restants": 3}
                for _ in range(n)]
@@ -830,7 +832,7 @@ def init_joueurs(n):
 
 def generer_statistique_partie():
     """
-    genere la chain `statistique` prete a etre ecrite dans un fichier.
+    genere la chaine `statistique` prete a etre ecrite dans un fichier.
     elle contient les scores pour chaque joueur et des infos
     complementaires
     """
@@ -852,7 +854,7 @@ def generer_statistique_partie():
         statistique += '\n'
         statistique += f"Score: {joueur['score']}\n"
         statistique += f"Nombre de mots joues: {len(joueur['mots_places'])}\n"
-        statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}"
+        statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}\n"
         statistique += f"Indices utilises: {3 - joueur['indices_restants']}/3\n"
         if i != len(joueurs) - 1:
             statistique += '\n\n'
@@ -870,7 +872,7 @@ def generer_statistique_seance():
     """
     donnees_joueurs = {}
     
-    for partie in HISTORIE:
+    for partie in HISTOIRE:
         for joueur in partie["joueurs"]:
             nom_joueur = joueur["nom"]
             if nom_joueur not in donnees_joueurs:
@@ -1019,7 +1021,7 @@ def sauvegarder_etat(chemin):
 
 def charger_etat(chemin):
     """
-    charge le STATE d'un fichier JSON
+    charge STATE d'un fichier JSON
     """
     try:
         with open(chemin, 'r') as fichier:
@@ -1031,7 +1033,7 @@ def charger_etat(chemin):
         print(f"Fichier {chemin} n'existe pas")
         return None
     except json.JSONDecodeError:
-        print(f"Fichier {filename} n'est pas correct")
+        print(f"Fichier {chemin} n'est pas correct")
         return None
     except Exception as e:
         print(f"Une erreur est survenue : {e}")
@@ -1083,7 +1085,7 @@ def trouver_ancres(plateau):
                 ancres.append((x, y))
     return ancres
 
-def recuperer_contexte(plateau, x, y, direction):
+def obtenir_contexte(plateau, x, y, direction):
     """
     analyse les cases autour de l'ancre (x, y) dans une direction donnee
     pour recuperer les lettres deja existantes
@@ -1143,7 +1145,7 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
 
     for (ax, ay) in ancres:
         for direction in directions:
-            prefixe, suffixe = recuperer_contexte(plateau, ax, ay, direction)
+            prefixe, suffixe = obtenir_contexte(plateau, ax, ay, direction)
             constraint = prefixe + suffixe
             
             temp_main = main + list(constraint)
@@ -1208,6 +1210,9 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                                 continue
 
                             score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                            if len(res) == 7:
+                                score += 50
+                            
                             sig = (mot, start_x, start_y, direction)
                             if sig not in checked_signatures:
                                 suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
@@ -1216,11 +1221,64 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
     suggestions.sort(key=lambda x: x['score'], reverse=True)
     return suggestions
 
+# PARTIE 8 (IA) ################################################################
+
+def tour_joueur_IA(plateau, bonus, joueur, sac, dico, mots_fr):
+    """
+    on utilise generer_toutes_suggestions() pour obtenir les
+    meilleurs coups pour un joueur IA. s'il y en a pas, on
+    echanges des lettres
+    """
+    suggestions = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
+    SCORE_MIN_POUR_JOUER = 10
+
+    if suggestions and suggestions[0]['score'] >= SCORE_MIN_POUR_JOUER:
+        # STRATEGIE 1: le bot joue le meilleur mot
+        meilleur_coup = suggestions[0]
+        mot = meilleur_coup["mot"]
+        x, y = meilleur_coup['x'], meilleur_coup['y']
+        dir = meilleur_coup["dir"]
+        score = meilleur_coup["score"]
+        
+        print(f"{joueur['nom']} propose: {mot} a ({x+1}, {y+1}) en direction {dir} pour {score} points")
+
+        if placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
+            completer_main(joueur["main"], sac)
+            joueur["dtour"] = "proposer"
+            return
+
+    # STRATEGIE 2: echanger des lettres
+    if len(sac) >= 7:
+        valeurs_main = []
+        for let in joueur["main"]:
+            valeur = dico["let"]["val"]
+            valeurs_main.append((let, valeur))
+
+        # on trie les jetons par valeur
+        for i in range(n):
+            for j in range(0, n - i - 1):
+                if valeurs_main[j][1] > valeurs_main[j + 1][1]:
+                    valeurs_main[j], valeurs_main[j + 1] = valeurs_main[j + 1], valeurs_main[j]
+        
+        # on echange les trois lettres les plus mauvaises
+        if len(joueur["main"]) >= 3:
+            jetons_a_echanger = [l for l, v in valeurs_main[:3]]
+            
+            if echanger(jetons_a_echanger, joueur["main"], sac):
+                print(f"{joueur['nom']} echange {len(jetons_a_echanger)} jetons (valeur min).")
+                joueur["dtour"] = "echanger"
+                return
+
+    # STRATEGIE 3: passer
+    print(f"{joueur['nom']} passe son tour")
+    joueur["dtour"] = "passer"
+    return    
+    
 # MAIN PROGRAM  ################################################################
 
 def main():
     global STATE
-    global HISTORIE
+    global HISTOIRE
     
     # root, canvas = init_gui(50)
     bonus = init_bonus()    
@@ -1244,7 +1302,18 @@ def main():
                 etat_charge = True
 
         if not etat_charge:
-            n_joueurs = int(input("Nombre de joueurs ? "))
+            n_joueurs = 0
+            while True:
+                try:
+                    n_joueurs_input = input("Nombre de joueurs ? ")
+                    n_joueurs = int(n_joueurs_input)
+                    if n_joueurs < 1:
+                        print("Le nombre de joueurs doit être au moins 1")
+                        continue
+                    break
+                except ValueError:
+                    print("Saisissez un nombre entier valide pour le nombre de joueurs")
+                    
             STATE["pioche"] = init_pioche(dico)
             STATE["plateau"] = init_jetons()
             STATE["joueurs"] = init_joueurs(n_joueurs)
@@ -1259,6 +1328,7 @@ def main():
         pioche = STATE["pioche"]
         plateau = STATE["plateau"]
         joueurs = STATE["joueurs"]
+        n_joueurs = len(STATE["joueurs"])
         
         fin_partie = False            
         while not fin_partie: # la boucle du jeu
@@ -1268,7 +1338,11 @@ def main():
             print(f"Joueur {cur_joueur['nom']},\nil reste {len(pioche)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
             print(f"indices restantes: {cur_joueur['indices_restants']} / 3")
-            tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
+
+            if cur_joueur["nom"][:3] != "Bot":
+                tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
+            else:
+                tour_joueur_IA(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
 
             if partie_terminee(joueurs, pioche):
                 max_score = -1
@@ -1286,7 +1360,7 @@ def main():
 
             STATE["tour"] += 1
             STATE["joueur_suiv"] = joueur_suivant(n_joueurs, STATE["joueur_suiv"])
-        HISTORIE.append(copy.deepcopy(STATE))
+        HISTOIRE.append(copy.deepcopy(STATE))
 
         statistique = generer_statistique_partie()
         # print(statistique)
