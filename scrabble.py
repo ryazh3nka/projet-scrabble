@@ -702,7 +702,7 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
     """
     reessayer = True
     while reessayer:
-        joueur["dtour"] = input("passer/echanger/proposer? ")
+        joueur["dtour"] = input("passer/echanger/proposer/indice? ")
         
         match joueur["dtour"]:
             case "echanger":
@@ -748,6 +748,20 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
                     
             case "passer":
                 reessayer = False
+
+            case "indice":
+                print("L'IA réfléchit...")
+                tops = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
+
+                if not tops:
+                    print("Aucune suggestion trouvée.")
+                else:
+                    print(f"Top 5 suggestions:")
+                    for i, s in enumerate(tops[:5]):
+                        d_str = "Droit (Horiz)" if s['dir'] == "droit" else "Bas (Vert)"
+                        print(f"{i+1}. {s['mot']} -> ({s['x']+1}, {s['y']+1}) {d_str} | Score: ~{s['score']}")
+
+                continue
                 
             case _:
                 print("Choix invalid. Reessayez.")
@@ -925,6 +939,131 @@ def generer_statistique_seance():
         statistique += f"{nom_joueur} : {str(round(moyenne_joueur, 2))}\n"
 
     return statistique
+
+def a_au_moins_un_voisin(plateau, x, y):
+
+    directions = [
+        (-1, 0), #gauche
+        (1, 0), #droit
+        (0, -1), #haut
+        (0, 1) #bas
+    ]
+
+    for dx, dy in directions:
+        vx, vy = x + dx, y + dy
+
+        if 0 <= vx < TAILLE_PLATEAU and 0 <= vy < TAILLE_PLATEAU and plateau[vy][vx] != '':
+            return True
+    return False
+
+def trouver_ancres(plateau):
+    ancres = []
+    if STATE["n_mots_places"] == 0:
+        return [(7, 7)]
+    
+    for y in range(TAILLE_PLATEAU):
+        for x in range(TAILLE_PLATEAU):
+            if plateau[y][x] == '' and a_au_moins_un_voisin(plateau, x, y):
+                ancres.append((x, y))
+    return ancres
+
+def recuperer_contexte(plateau, x, y, direction):
+    match direction:
+        case "horizontal": dx = 1, dy = 0
+        case "vertical": dx = 0, dy = 1
+    
+    nx, ny = x - dx, y - dy
+    prefixe = ''
+
+    while 0 <= nx < TAILLE_PLATEAU and 0 <= ny < TAILLE_PLATEAU and plateau[y][x] != '':
+        prefixe += plateau[ny][nx]
+        nx -= dx
+        ny -= dy
+
+    nx, ny = x + dx, y + dy
+    suffixe = ''
+
+    while 0 <= nx < TAILLE_PLATEAU and 0 <= ny < TAILLE_PLATEAU and plateau[ny][nx] != '':
+        suffixe += plateau[ny][nx]
+        nx += dx
+        ny += dy
+        
+    return prefixe, suffixe
+
+def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
+    suggestions = []
+    ancres = trouver_ancres(plateau)
+    directions = ["horizontal", "orthogonal"]
+    
+    checked_signatures = set()
+    cache_mots = {}
+
+    for (ax, ay) in ancres:
+        for direction in directions:
+            prefixe, suffixe = recuperer_contexte(plateau, ax, ay, direction)
+            constraint = prefixe + suffixe
+            
+            temp_main = main + list(constraint)
+            
+            key_main = "".join(sorted(temp_main))
+            
+            if key_main in cache_mots:
+                candidats = cache_mots[key_main]
+            else:
+                candidats = mots_jouables(mots_fr, temp_main, '')
+                cache_mots[key_main] = candidats
+
+            valid_candidats = []
+            if constraint:
+                for mot in candidats:
+                    if constraint in mot:
+                        valid_candidats.append(mot)
+            else:
+                valid_candidats = candidats
+
+            for mot in valid_candidats:
+                
+                if prefixe:
+                    offset = len(prefixe)
+                    if direction == "droit":
+                        start_x = ax - offset
+                        start_y = ay
+                    else:
+                        start_x = ax
+                        start_y = ay - offset
+                        
+                    if tester_placement(plateau, start_x, start_y, direction, mot):
+                        score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                        sig = (mot, start_x, start_y, direction)
+                        if sig not in checked_signatures:
+                            suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
+                            checked_signatures.add(sig)
+                
+                else:
+                    n = len(mot)
+                    for i in range(n):
+                        if direction == "droit":
+                            start_x = ax - i
+                            start_y = ay
+                        else:
+                            start_x = ax
+                            start_y = ay - i
+                        
+                        if not (0 <= start_x < TAILLE_PLATEAU and 0 <= start_y < TAILLE_PLATEAU):
+                            continue
+
+                        if tester_placement(plateau, start_x, start_y, direction, mot) is not None:
+                            res = tester_placement(plateau, start_x, start_y, direction, mot)
+                            if res != []:
+                                score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                                sig = (mot, start_x, start_y, direction)
+                                if sig not in checked_signatures:
+                                    suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
+                                    checked_signatures.add(sig)
+
+    suggestions.sort(key=lambda x: x['score'], reverse=True)
+    return suggestions
+
 
 # MAIN PROGRAM  ################################################################
 
