@@ -288,7 +288,7 @@ def mots_jouables(mots_fr, ll, lettres_deja_places):
     Q16) renvoit toutes les mots dans `mots_fr` qui sont jouables
     a partir des lettres dans `ll`
     """
-    return [mot for mot in mots_fr if mot_jouable(mot, ll, lettres_deja_places)]
+    return [mot for mot in mots_fr if mot_jouable(mot, ll)]
     # for mot in mots_fr:
     #     if mot_jouable(mot, ll, ''):
     #         res.append(mot)
@@ -750,18 +750,23 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
                 reessayer = False
 
             case "indice":
-                print("L'IA réfléchit...")
-                tops = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
+                if joueur["indices_restants"] > 0:
+                    print("l'IA réfléchit...")
+                    tops = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
 
-                if not tops:
-                    print("Aucune suggestion trouvée.")
+                    if not tops:
+                        print("aucune suggestion trouvée.")
+                    else:
+                        print(f"top 5 suggestions:")
+                        for i, s in enumerate(tops[:5]):
+                            d_str = "droit" if s['dir'] == "droit" else "bas"
+                            print(f"{i+1}. {s['mot']} -> ({s['x']+1}, {s['y']+1}) {d_str} | Score: ~{s['score']}")
+                        joueur["indices_restants"] -= 1
+                        print(f"\nil vous reste {joueur['indices_restants']} indices.")
                 else:
-                    print(f"Top 5 suggestions:")
-                    for i, s in enumerate(tops[:5]):
-                        d_str = "Droit (Horiz)" if s['dir'] == "droit" else "Bas (Vert)"
-                        print(f"{i+1}. {s['mot']} -> ({s['x']+1}, {s['y']+1}) {d_str} | Score: ~{s['score']}")
+                    print("vous avez épuisé tous vos indices pour cette partie!")
 
-                continue
+                    continue
                 
             case _:
                 print("Choix invalid. Reessayez.")
@@ -803,7 +808,7 @@ def init_joueurs(n):
     dtour -> l'action choisie pendant le dernier tour
     mots_places -> pairs de type (mot, score)
     """
-    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0}
+    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0, "indices_restants": 3}
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
@@ -837,6 +842,7 @@ def generer_statistique_partie():
         statistique += f"Score: {joueur['score']}\n"
         statistique += f"Nombre de mots joues: {len(joueur['mots_places'])}\n"
         statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}"
+        statistique += f"Indices utilises: {3 - joueur['indices_restants']}/3\n"
         if i != len(joueurs) - 1:
             statistique += '\n\n'
         else:
@@ -941,7 +947,18 @@ def generer_statistique_seance():
     return statistique
 
 def a_au_moins_un_voisin(plateau, x, y):
+    """
+    Verifie si la case aux coordonnees (x, y) possede au moins un voisin occupe
+    (une lettre deja placee) dans l'une des 4 directions cardinales.
 
+    Cette fonction est utilisee pour determiner si une case vide est une "ancre" valide,
+    c'est-a-dire si elle est connectee au reste du jeu.
+
+    :param plateau: La grille de jeu actuelle
+    :param x: La colonne
+    :param y: La ligne
+    :return: True si un voisin est trouve, False sinon
+    """
     directions = [
         (-1, 0), #gauche
         (1, 0), #droit
@@ -957,6 +974,17 @@ def a_au_moins_un_voisin(plateau, x, y):
     return False
 
 def trouver_ancres(plateau):
+    """
+    Trouve toutes les "ancres" possibles sur le plateau.
+    Une ancre est une case vide ou l'on peut potentiellement poser une lettre.
+
+    Regles :
+    1. Au premier tour, la seule ancre est le centre (7, 7).
+    2. Aux tours suivants, ce sont toutes les cases vides qui ont au moins
+       un voisin (lettre adjacente).
+    
+    Renvoit une liste de tuples (x, y).
+    """
     ancres = []
     if STATE["n_mots_places"] == 0:
         return [(7, 7)]
@@ -968,9 +996,22 @@ def trouver_ancres(plateau):
     return ancres
 
 def recuperer_contexte(plateau, x, y, direction):
+    """
+    Analyse les cases autour de l'ancre (x, y) dans une direction donnée
+    pour recuperer les lettres deja existantes.
+
+    Cela permet de detecter si le nouveau mot sera un prolongement d'un mot existant.
+    - prefixe : les lettres qui se trouvent immediatement avant (gauche/haut)
+    - suffixe : les lettres qui se trouvent immediatement apres (droit/bas)
+
+    Renvoit le prefixe et le suffixe sous forme de chaines de caracteres.
+    """
+    dx = 0
+    dy = 0
+
     match direction:
-        case "horizontal": dx = 1, dy = 0
-        case "vertical": dx = 0, dy = 1
+        case "droit": dx, dy = 1, 0
+        case "bas":   dx, dy = 0, 1
     
     nx, ny = x - dx, y - dy
     prefixe = ''
@@ -991,12 +1032,27 @@ def recuperer_contexte(plateau, x, y, direction):
     return prefixe, suffixe
 
 def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
+    """
+    Fonction principale de l'IA (Intelligence Artificielle).
+    Elle genere une liste de coups possibles, tries par score decroissant.
+
+    L'algorithme utilise la technique de la "Main Virtuelle" :
+    1. On identifie les ancres et le contexte (lettres deja presentes).
+    2. On ajoute temporairement les lettres du contexte a la main du joueur.
+    3. On utilise mots_jouables() pour trouver des mots combinant main + plateau.
+    4. On verifie si le placement est valide (geometriquement et regles du jeu).
+    5. On calcule le score potentiel pour chaque coup valide.
+
+    Renvoit une liste de dictionnaires contenant le mot, ses coordonnees et son score.
+    """
     suggestions = []
     ancres = trouver_ancres(plateau)
-    directions = ["horizontal", "orthogonal"]
+    directions = ["droit", "bas"]
     
     checked_signatures = set()
     cache_mots = {}
+
+    print(f"INFO: Recherche d'indices sur {len(ancres)} ancres...")
 
     for (ax, ay) in ancres:
         for direction in directions:
@@ -1004,7 +1060,6 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
             constraint = prefixe + suffixe
             
             temp_main = main + list(constraint)
-            
             key_main = "".join(sorted(temp_main))
             
             if key_main in cache_mots:
@@ -1022,7 +1077,6 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                 valid_candidats = candidats
 
             for mot in valid_candidats:
-                
                 if prefixe:
                     offset = len(prefixe)
                     if direction == "droit":
@@ -1031,35 +1085,46 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                     else:
                         start_x = ax
                         start_y = ay - offset
-                        
-                    if tester_placement(plateau, start_x, start_y, direction, mot):
-                        score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
-                        sig = (mot, start_x, start_y, direction)
-                        if sig not in checked_signatures:
-                            suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
-                            checked_signatures.add(sig)
-                
                 else:
                     n = len(mot)
-                    for i in range(n):
+                    offsets_to_try = range(n)
+                
+                if prefixe: offsets_to_try = [0]
+
+                for i in offsets_to_try:
+                    if not prefixe:
                         if direction == "droit":
                             start_x = ax - i
                             start_y = ay
                         else:
                             start_x = ax
                             start_y = ay - i
-                        
-                        if not (0 <= start_x < TAILLE_PLATEAU and 0 <= start_y < TAILLE_PLATEAU):
-                            continue
 
-                        if tester_placement(plateau, start_x, start_y, direction, mot) is not None:
-                            res = tester_placement(plateau, start_x, start_y, direction, mot)
-                            if res != []:
-                                score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
-                                sig = (mot, start_x, start_y, direction)
-                                if sig not in checked_signatures:
-                                    suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
-                                    checked_signatures.add(sig)
+                    res = tester_placement(plateau, start_x, start_y, direction, mot)
+
+                    if res:
+                        if mot_jouable(res, main):
+                            
+                            voisins_valides = True
+                            nx, ny = start_x, start_y
+                            
+                            for k in range(len(mot)):
+                                voisin = voisin_orthogonal(plateau, nx, ny, mot[k], direction)
+                                if voisin != '' and len(voisin) > 1:
+                                    if not mot_existe_jokers(voisin, mots_fr):
+                                        voisins_valides = False
+                                        break
+                                if direction == "droit": nx += 1
+                                else: ny += 1
+                            
+                            if not voisins_valides:
+                                continue
+
+                            score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                            sig = (mot, start_x, start_y, direction)
+                            if sig not in checked_signatures:
+                                suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
+                                checked_signatures.add(sig)
 
     suggestions.sort(key=lambda x: x['score'], reverse=True)
     return suggestions
@@ -1101,6 +1166,7 @@ def main():
             cur_joueur = joueurs[joueur_suiv]
             print(f"Joueur {cur_joueur['nom']},\nil reste {len(pioche)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+            print(f"indices restantes: {cur_joueur['indices_restants']} / 3")
             tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
 
             if partie_terminee(joueurs, pioche):
