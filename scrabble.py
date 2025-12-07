@@ -782,7 +782,7 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
             case _:
                 print("Choix invalid. Reessayez.")
         print()
-    
+
 def partie_terminee(joueurs, sac):
     """
     Q26) verifie si la partie doit terminer ce tour-ci
@@ -1152,7 +1152,7 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
             if key_main in cache_mots:
                 candidats = cache_mots[key_main]
             else:
-                candidats = mots_jouables(mots_fr, temp_main, '')
+                candidats = mots_jouables(mots_fr, temp_main)
                 cache_mots[key_main] = candidats
 
             valid_candidats = []
@@ -1254,7 +1254,7 @@ def main():
             
             # tests (DELETE THIS)
             STATE["joueurs"][0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-            STATE["joueurs"][1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+            STATE["joueurs"][1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
 
         pioche = STATE["pioche"]
         plateau = STATE["plateau"]
