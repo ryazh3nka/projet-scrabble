@@ -292,12 +292,12 @@ def mot_jouable(mot, main):
     besoin_jokers = len(mot_copie)
     return besoin_jokers - n_jokers <= 0
 
-def mots_jouables(mots_fr, ll, lettres_deja_places):
+def mots_jouables(mots_fr, ll):
     """
     Q16) renvoit toutes les mots dans `mots_fr` qui sont jouables
     a partir des lettres dans `ll`
     """
-    return [mot for mot in mots_fr if mot_jouable(mot, ll, lettres_deja_places)]
+    return [mot for mot in mots_fr if mot_jouable(mot, ll)]
     # for mot in mots_fr:
     #     if mot_jouable(mot, ll, ''):
     #         res.append(mot)
@@ -469,7 +469,7 @@ def mot_debut(plateau, x, y, dir):
     x_deb, y_deb = case_suiv(nx, ny, dir_debut)
     return x_deb, y_deb, dir_debut
         
-def a_voisins(plateau, x, y, dir):
+def a_voisins_trois_dir(plateau, x, y, dir):
     """
     renvoit si la case a des cases voisines non-vides. cette fonction
     verifie chaque direction sauf celle opposee a `dir` (car
@@ -556,6 +556,7 @@ def tester_placement(plateau, x, y, dir, mot):
     contienne une lettre correspondante de notre mot
     2) le mot soit connecte aux autres (il y a des voisins)
     3) le mot ne soit pas hors limites du plateau
+    4) il n'y a pas de jetons directement AVANT ou APRES le mot
 
     renvoit les lettres necessaires pour placer ce mot; une liste vide
     sinon
@@ -587,7 +588,7 @@ def tester_placement(plateau, x, y, dir, mot):
         elif let_cour == '':
             lettres_manq.append(mot[i])
 
-        if a_voisins(plateau, x, y, dir):
+        if a_voisins_trois_dir(plateau, x, y, dir):
             voisins = True
         x, y = case_suiv(x, y, dir)
 
@@ -598,7 +599,7 @@ def tester_placement(plateau, x, y, dir, mot):
 def mot_existe_jokers(mot_incomplet, mots_fr):
     """
     verifie si le mot `mot_incomplet` est bien un mot francais
-    prenant en compte la possibilite que des jokers soient present
+    prenant en compte la possibilite que des jokers soient presents
     """
     lgr = len(mot_incomplet)
     mots_fr_meme_lgr = select_mot_longueur(mots_fr, lgr)
@@ -703,16 +704,12 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
 def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
     """
     Q25) gere le tour d'un joueur. la fonction lui donne un choix,
-    et en fonction de la reponse, on appelle une fonction
+    et en fonction de la reponse, on appelle la fonction
     correspondante
-
-    echanger -> echanger()
-    proposer -> placer_mot()
-    passer -> pass
     """
     reessayer = True
     while reessayer:
-        joueur["dtour"] = input("passer/echanger/proposer/sauvegarder? ")
+        joueur["dtour"] = input("passer/echanger/proposer/sauvegarder/indice? ")
         
         match joueur["dtour"]:
             case "echanger":
@@ -762,6 +759,25 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
                 
             case "passer":
                 reessayer = False
+
+            case "indice":
+                if joueur["indices_restants"] > 0:
+                    print("l'IA réfléchit...")
+                    tops = generer_toutes_suggestions(plateau, bonus, joueur["main"], mots_fr, dico)
+
+                    if not tops:
+                        print("aucune suggestion trouvée.")
+                    else:
+                        print(f"top 5 suggestions:")
+                        for i, s in enumerate(tops[:5]):
+                            d_str = "droit" if s['dir'] == "droit" else "bas"
+                            print(f"{i+1}. {s['mot']} -> ({s['x']+1}, {s['y']+1}) {d_str} | Score: ~{s['score']}")
+                        joueur["indices_restants"] -= 1
+                        print(f"\nil vous reste {joueur['indices_restants']} indices.")
+                else:
+                    print("vous avez épuisé tous vos indices pour cette partie!")
+
+                    continue
                 
             case _:
                 print("Choix invalid. Reessayez.")
@@ -771,7 +787,7 @@ def partie_terminee(joueurs, sac):
     """
     Q26) verifie si la partie doit terminer ce tour-ci
     
-    les conditions de la fin de partie (quelconque est suffisante):
+    les conditions de la fin de partie (quelconque est suffisante) :
     1) un joueur n'a pas de jetons dans la main et il n'y a pas
     de jetons dans la pioche
     2) tous les joueurs ont passe leur tour
@@ -803,7 +819,7 @@ def init_joueurs(n):
     dtour -> l'action choisie pendant le dernier tour
     mots_places -> pairs de type (mot, score)
     """
-    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0}
+    joueurs = [{"nom": '', "score": 0, "main": [], "dtour": "", "mots_places": [], "n_scrabbles": 0, "indices_restants": 3}
                for _ in range(n)]
     for i in range(n):
         nom = input(f"Joueur {i}, tapez votre nom : ")
@@ -837,6 +853,7 @@ def generer_statistique_partie():
         statistique += f"Score: {joueur['score']}\n"
         statistique += f"Nombre de mots joues: {len(joueur['mots_places'])}\n"
         statistique += f"Nombre de Scrabbles: {joueur['n_scrabbles']}"
+        statistique += f"Indices utilises: {3 - joueur['indices_restants']}/3\n"
         if i != len(joueurs) - 1:
             statistique += '\n\n'
         else:
@@ -944,7 +961,7 @@ def generer_statistique_seance():
 
 def init_gui(taille_cell):
     """
-    initialise le canvas et le fenetre principale
+    initialise le canvas et la fenetre principale
     """
     root = tkinter.Tk()
     root.title("Le Scrabble")
@@ -988,6 +1005,9 @@ def dessiner_plateau(root, canvas, jetons, bonus, taille_cell):
 # PARTIE 8 (SAUVEGARDE)  #######################################################
 
 def sauvegarder_etat(chemin):
+    """
+    sauvegarde STATE en JSON dans un fichier
+    """
     try:
         with open(chemin, 'w') as fichier:
             json.dump(STATE, fichier, indent = 4)
@@ -998,6 +1018,9 @@ def sauvegarder_etat(chemin):
         return None
 
 def charger_etat(chemin):
+    """
+    charge le STATE d'un fichier JSON
+    """
     try:
         with open(chemin, 'r') as fichier:
             print("Chargement fait !")
@@ -1014,6 +1037,185 @@ def charger_etat(chemin):
         print(f"Une erreur est survenue : {e}")
         return None
     
+# PARTIE 8 (INDICES) ###########################################################
+
+def a_voisins(plateau, x, y):
+    """
+    verifie si la case aux coordonnees (x, y) possede au moins un voisin occupe
+    (une lettre deja placee) dans l'une des 4 directions
+
+    cette fonction est utilisee pour determiner si une case vide est une "ancre" valide,
+    c'est-a-dire si elle est connectee au reste du jeu
+    """
+    directions = [
+        (-1, 0), #gauche
+        (1, 0), #droit
+        (0, -1), #haut
+        (0, 1) #bas
+    ]
+
+    for dx, dy in directions:
+        vx, vy = x + dx, y + dy
+
+        if 0 <= vx < TAILLE_PLATEAU and 0 <= vy < TAILLE_PLATEAU and plateau[vy][vx] != '':
+            return True
+    return False
+
+def trouver_ancres(plateau):
+    """
+    trouve toutes les "ancres" possibles sur le plateau
+    une ancre est une case vide ou l'on peut potentiellement poser une lettre
+
+    note :
+    1. au premier tour, la seule ancre est le centre (7, 7)
+    2. aux tours suivants, ce sont toutes les cases vides qui ont au moins
+       un voisin (lettre adjacente)
+    
+    renvoit une liste de tuples (x, y)
+    """
+    ancres = []
+    if STATE["n_mots_places"] == 0:
+        return [(7, 7)]
+    
+    for y in range(TAILLE_PLATEAU):
+        for x in range(TAILLE_PLATEAU):
+            if plateau[y][x] == '' and a_voisins(plateau, x, y):
+                ancres.append((x, y))
+    return ancres
+
+def recuperer_contexte(plateau, x, y, direction):
+    """
+    analyse les cases autour de l'ancre (x, y) dans une direction donnee
+    pour recuperer les lettres deja existantes
+
+    cela permet de detecter si le nouveau mot sera un prolongement d'un mot existant
+    - prefixe : les lettres qui se trouvent immediatement avant (gauche/haut)
+    - suffixe : les lettres qui se trouvent immediatement apres (droit/bas)
+
+    renvoit le prefixe et le suffixe
+    """
+    dx = 0
+    dy = 0
+
+    match direction:
+        case "droit": dx, dy = 1, 0
+        case "bas":   dx, dy = 0, 1
+    
+    nx, ny = x - dx, y - dy
+    prefixe = ''
+
+    while 0 <= nx < TAILLE_PLATEAU and 0 <= ny < TAILLE_PLATEAU and plateau[y][x] != '':
+        prefixe += plateau[ny][nx]
+        nx -= dx
+        ny -= dy
+
+    nx, ny = x + dx, y + dy
+    suffixe = ''
+
+    while 0 <= nx < TAILLE_PLATEAU and 0 <= ny < TAILLE_PLATEAU and plateau[ny][nx] != '':
+        suffixe += plateau[ny][nx]
+        nx += dx
+        ny += dy
+        
+    return prefixe, suffixe
+
+def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
+    """
+    genere une liste de coups possibles, tries par score decroissant.
+
+    l'algorithme :
+    1. on identifie les ancres et le contexte (lettres deja presentes)
+    2. on ajoute temporairement les lettres du contexte a la main du joueur
+    3. on utilise mots_jouables() pour trouver des mots combinant main + plateau
+    4. on verifie si le placement est valide (geometriquement et regles du jeu)
+    5. on calcule le score potentiel pour chaque coup valide
+
+    renvoit une liste de dictionnaires contenant le mot, ses coordonnees et son score
+    """
+    suggestions = []
+    ancres = trouver_ancres(plateau)
+    directions = ["droit", "bas"]
+    
+    checked_signatures = set()
+    cache_mots = {}
+
+    print(f"INFO: Recherche d'indices sur {len(ancres)} ancres...")
+
+    for (ax, ay) in ancres:
+        for direction in directions:
+            prefixe, suffixe = recuperer_contexte(plateau, ax, ay, direction)
+            constraint = prefixe + suffixe
+            
+            temp_main = main + list(constraint)
+            key_main = "".join(sorted(temp_main))
+            
+            if key_main in cache_mots:
+                candidats = cache_mots[key_main]
+            else:
+                candidats = mots_jouables(mots_fr, temp_main, '')
+                cache_mots[key_main] = candidats
+
+            valid_candidats = []
+            if constraint:
+                for mot in candidats:
+                    if constraint in mot:
+                        valid_candidats.append(mot)
+            else:
+                valid_candidats = candidats
+
+            for mot in valid_candidats:
+                if prefixe:
+                    offset = len(prefixe)
+                    if direction == "droit":
+                        start_x = ax - offset
+                        start_y = ay
+                    else:
+                        start_x = ax
+                        start_y = ay - offset
+                else:
+                    n = len(mot)
+                    offsets_to_try = range(n)
+                
+                if prefixe: offsets_to_try = [0]
+
+                for i in offsets_to_try:
+                    if not prefixe:
+                        if direction == "droit":
+                            start_x = ax - i
+                            start_y = ay
+                        else:
+                            start_x = ax
+                            start_y = ay - i
+
+                    res = tester_placement(plateau, start_x, start_y, direction, mot)
+
+                    if res:
+                        if mot_jouable(res, main):
+                            
+                            voisins_valides = True
+                            nx, ny = start_x, start_y
+                            
+                            for k in range(len(mot)):
+                                voisin = voisin_orthogonal(plateau, nx, ny, mot[k], direction)
+                                if voisin != '' and len(voisin) > 1:
+                                    if not mot_existe_jokers(voisin, mots_fr):
+                                        voisins_valides = False
+                                        break
+                                if direction == "droit": nx += 1
+                                else: ny += 1
+                            
+                            if not voisins_valides:
+                                continue
+
+                            score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                            sig = (mot, start_x, start_y, direction)
+                            if sig not in checked_signatures:
+                                suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
+                                checked_signatures.add(sig)
+
+    suggestions.sort(key=lambda x: x['score'], reverse=True)
+    return suggestions
+
 # MAIN PROGRAM  ################################################################
 
 def main():
@@ -1065,6 +1267,7 @@ def main():
             cur_joueur = joueurs[STATE["joueur_suiv"]]
             print(f"Joueur {cur_joueur['nom']},\nil reste {len(pioche)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
+            print(f"indices restantes: {cur_joueur['indices_restants']} / 3")
             tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
 
             if partie_terminee(joueurs, pioche):
