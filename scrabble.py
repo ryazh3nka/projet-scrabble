@@ -1322,8 +1322,8 @@ def main():
                 completer_main(joueur["main"], STATE["pioche"])
             
             # tests (DELETE THIS)
-            STATE["joueurs"][0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-            STATE["joueurs"][1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
+            # STATE["joueurs"][0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+            # STATE["joueurs"][1]["main"] = ['C', 'H', 'A', 'T', 'O', 'N', '?']
 
         pioche = STATE["pioche"]
         plateau = STATE["plateau"]
