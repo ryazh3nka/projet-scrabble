@@ -1,0 +1,24 @@
+Partie de 07-12-2025 / 14:10
+a vs. b 
+Joueur 0 : a (VAINQUEUR)
+Score: 58
+Nombre de mots joues: 1
+Nombre de Scrabbles: 0
+
+Joueur 1 : b
+Score: 9
+Nombre de mots joues: 3
+Nombre de Scrabbles: 0
+
+Statistiques de la seance!
+
+Top 3 joueurs (score cumule) :
+1. a : 58
+2. b : 9
+
+Meilleur mot place :
+GOURMET - 22 points (joue par a)
+
+Moyenne des scores par joueur:
+a : 58.0
+b : 9.0

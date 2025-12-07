@@ -16,6 +16,7 @@ from datetime import datetime
 import random
 import tkinter
 import copy
+import json
 
 # CONSTANTES ###################################################################
 
@@ -39,9 +40,11 @@ BONUS_SYMBOLS = {
 STATE = {
     "tour": 1,
     "joueurs": [],
+    "joueur_suiv": 0,
     "vainqueur": "",
     "n_mots_places": 0,
-    "plateau": []
+    "plateau": [],
+    "pioche": []
 }
 
 # liste des etats des jeux passes
@@ -50,9 +53,11 @@ HISTORIE = []
 def REINIT_STATE():
     STATE["tour"] = 1
     STATE["joueurs"] = []
+    STATE["joueur_suiv"] = 0
     STATE["vainqueur"] = ""
     STATE["n_mots_places"] = 0
     STATE["plateau"] = []
+    STATE["pioche"] = []
     
 # PARTIE 1 : LE PLATEAU ########################################################
 
@@ -102,6 +107,9 @@ def init_jetons():
     return plt_jetons
 
 def ind_prefix(ind):
+    """
+    ajoute un zero devant un chiffre
+    """
     s_ind = str(ind)
     if len(s_ind) == 1:
         s_ind = '0' + s_ind
@@ -109,21 +117,20 @@ def ind_prefix(ind):
 
 def affiche_jetons(jetons, bonus):
     """
-    Q3) affiche le plateau des jetons
+    Q3) affiche le plateau des jetons en characteres ASCII
     """
     print(' ' * TAILLE_MARGE + ' ', end='')
     for i in range(1, TAILLE_PLATEAU + 1):
         print(ind_prefix(i) + "  ", end = '')
     print()
 
-    for i in range(TAILLE_PLATEAU):
-        ligne = i + 1
+    for y in range(TAILLE_PLATEAU):
+        ligne = y + 1
         print(' ' * TAILLE_MARGE + "|---" * TAILLE_PLATEAU + '|')
-        print(' ' + ind_prefix(ligne) + ' ', end = '')
-        for j in range(TAILLE_PLATEAU):
-            col = j
-            jeton_act = jetons[i][j] or ' '
-            bonus_act = BONUS_SYMBOLS.get(bonus[i][j], ' ')
+        print(' ' * (TAILLE_MARGE - 3) + ind_prefix(ligne) + ' ', end = '')
+        for x in range(TAILLE_PLATEAU):
+            jeton_act = jetons[y][x] or ' '
+            bonus_act = BONUS_SYMBOLS.get(bonus[y][x], ' ')
             print(f"| {jeton_act}{bonus_act}", end = '')
         print('|')
     print(' ' * TAILLE_MARGE + "|---" * TAILLE_PLATEAU + '|')
@@ -131,14 +138,14 @@ def affiche_jetons(jetons, bonus):
 def affiche_jetons_gui(jetons, bonus, taille_cell):
     """
     Q6) affiche le plateau des jetons dans un interface graphical
-    avec Tkinter
+    avec Tkinter (ameliore dans la partie 8)
     """
     root = tkinter.Tk()
     root.title("Le Scrabble")
     
     canvas = tkinter.Canvas(root,
-                       width = taille_cell*TAILLE_PLATEAU,
-                       height = taille_cell*TAILLE_PLATEAU)
+                       width = taille_cell * TAILLE_PLATEAU,
+                       height = taille_cell * TAILLE_PLATEAU)
     canvas.pack()
 
     for ligne in range(TAILLE_PLATEAU):
@@ -167,7 +174,9 @@ def affiche_jetons_gui(jetons, bonus, taille_cell):
                                fill = couleur,
                                font = ("Arial", int(taille_cell / 2)),
                                text = jeton_act)
-    root.mainloop() # TODO: change this (now this stalls the program)
+    # cela bloque l'execution
+    # il faut fermer la fenetre pour continuer
+    root.mainloop()
     
 # PARTIE 2 : LA PIOCHE #########################################################
 
@@ -680,6 +689,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
     mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_avec_jokers, dico)
     mot_score += mot_score_sans_voisins
     if len(joueur["main"]) == 0:
+        joueur["n_scrabbles"] += 1
         mot_score += 50
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
     
@@ -702,7 +712,7 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
     """
     reessayer = True
     while reessayer:
-        joueur["dtour"] = input("passer/echanger/proposer? ")
+        joueur["dtour"] = input("passer/echanger/proposer/sauvegarder? ")
         
         match joueur["dtour"]:
             case "echanger":
@@ -745,7 +755,11 @@ def tour_joueur(plateau, bonus, joueur, sac, dico, mots_fr):
                 if (mot_propose != "!RET"):
                     completer_main(joueur["main"], sac)
                     reessayer = False
-                    
+
+            case "sauvegarder":
+                chemin = input(f"Saisissez le chemin d'acces : ")
+                sauvegarder_etat(chemin)
+                
             case "passer":
                 reessayer = False
                 
@@ -796,7 +810,7 @@ def init_joueurs(n):
         joueurs[i]["nom"] = nom
     return joueurs
 
-# PARTIE 8 #####################################################################
+# PARTIE 8 (STATISTIQUE) #######################################################
 
 def generer_statistique_partie():
     """
@@ -926,40 +940,129 @@ def generer_statistique_seance():
 
     return statistique
 
+# PARTIE 8 (AFFICHAGE GRAPHIQUE) ###############################################
+
+def init_gui(taille_cell):
+    """
+    initialise le canvas et le fenetre principale
+    """
+    root = tkinter.Tk()
+    root.title("Le Scrabble")
+    canvas = tkinter.Canvas(root,
+                       width = taille_cell * TAILLE_PLATEAU,
+                       height = taille_cell * TAILLE_PLATEAU)
+    canvas.pack()
+    return root, canvas
+    
+def dessiner_plateau(root, canvas, jetons, bonus, taille_cell):
+    """
+    redessine le plateau completement
+    """
+    canvas.delete("all")
+    for ligne in range(TAILLE_PLATEAU):
+        for col in range(TAILLE_PLATEAU):
+            x1 = col * taille_cell
+            y1 = ligne * taille_cell
+            x2 = col * taille_cell + taille_cell
+            y2 = ligne * taille_cell + taille_cell
+            bonus_act = bonus[col][ligne]
+            couleur = "white"
+            match bonus_act:
+                case "MT": couleur = "red"
+                case "MD": couleur = "yellow"
+                case "LT": couleur = "blue"
+                case "LD": couleur = "green"
+            canvas.create_rectangle(x1, y1,
+                                    x2, y2,
+                                    fill = couleur,
+                                    outline = "black")
+            jeton_act = jetons[ligne][col]
+            couleur = "black"
+            canvas.create_text((x1 + x2) / 2,
+                               (y1 + y2) / 2,
+                               fill = couleur,
+                               font = ("Arial", int(taille_cell / 2)),
+                               text = jeton_act)
+    root.update()
+
+# PARTIE 8 (SAUVEGARDE)  #######################################################
+
+def sauvegarder_etat(chemin):
+    try:
+        with open(chemin, 'w') as fichier:
+            json.dump(STATE, fichier, indent = 4)
+            print(f"Sauvegarde faite !")
+            
+    except Exception as e:
+        print(f"Une erreur est survenue : {e}")
+        return None
+
+def charger_etat(chemin):
+    try:
+        with open(chemin, 'r') as fichier:
+            print("Chargement fait !")
+            etat_charge = json.load(fichier)
+        return etat_charge
+    
+    except FileNotFoundError:
+        print(f"Fichier {chemin} n'existe pas")
+        return None
+    except json.JSONDecodeError:
+        print(f"Fichier {filename} n'est pas correct")
+        return None
+    except Exception as e:
+        print(f"Une erreur est survenue : {e}")
+        return None
+    
 # MAIN PROGRAM  ################################################################
 
 def main():
     global STATE
     global HISTORIE
     
+    # root, canvas = init_gui(50)
     bonus = init_bonus()    
     dico = generer_dico()
     mots_fr = generer_dictfr("littre.txt")
-    
+
+    reponses_positives = ["oui", "Oui", "OUI", 'O', 'O', "yes", "Yes", "YES", 'Y', 'y']
     reponses_negatives = ["non", "Non", "NON", 'N', 'n', "no", "No", "NO"]
     reponse_revanche = ""
     while reponse_revanche not in reponses_negatives:
         REINIT_STATE()
 
-        pioche = init_pioche(dico)
-        plateau = STATE["plateau"] = init_jetons()
-        
-        n_joueurs = int(input("Nombre de joueurs ? "))
-        joueurs = STATE["joueurs"] = init_joueurs(n_joueurs)
-        
-        for joueur in joueurs:
-            completer_main(joueur["main"], pioche)
-            
-        # tests (DELETE THIS)
-        joueurs[0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
-        joueurs[1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
-        # joueurs[1]["main"] = ['C', 'Z', 'E', 'T', 'J', 'S', 'O']
+        etat_charge = False
+        reponse_charger = input("Voulez-vous charger une sauvegarde ? (y/N) ")
+        if reponse_charger in reponses_positives:
+            chemin = input(f"Saisissez le chemin d'acces : ")
+            etat_charge = charger_etat(chemin)
+            if etat_charge != None:
+                STATE = etat_charge
+                print(STATE)
+                etat_charge = True
 
-        joueur_suiv = 0
+        if not etat_charge:
+            n_joueurs = int(input("Nombre de joueurs ? "))
+            STATE["pioche"] = init_pioche(dico)
+            STATE["plateau"] = init_jetons()
+            STATE["joueurs"] = init_joueurs(n_joueurs)
+        
+            for joueur in STATE["joueurs"]:
+                completer_main(joueur["main"], STATE["pioche"])
+            
+            # tests (DELETE THIS)
+            STATE["joueurs"][0]["main"] = ['G', 'O', 'U', 'R', 'M', 'E', 'T']
+            STATE["joueurs"][1]["main"] = ['C', '?', 'A', 'T', 'O', 'N', '?']
+
+        pioche = STATE["pioche"]
+        plateau = STATE["plateau"]
+        joueurs = STATE["joueurs"]
+        
         fin_partie = False            
         while not fin_partie: # la boucle du jeu
             affiche_jetons(plateau, bonus)
-            cur_joueur = joueurs[joueur_suiv]
+            # dessiner_plateau(root, canvas, plateau, bonus, 50)
+            cur_joueur = joueurs[STATE["joueur_suiv"]]
             print(f"Joueur {cur_joueur['nom']},\nil reste {len(pioche)} jetons dans le sac,")
             print(f"votre score est {cur_joueur['score']}\nvotre main est {cur_joueur['main']}")
             tour_joueur(plateau, bonus, cur_joueur, pioche, dico, mots_fr)
@@ -979,9 +1082,9 @@ def main():
                 fin_partie = True
 
             STATE["tour"] += 1
-            joueur_suiv = joueur_suivant(n_joueurs, joueur_suiv)
+            STATE["joueur_suiv"] = joueur_suivant(n_joueurs, STATE["joueur_suiv"])
         HISTORIE.append(copy.deepcopy(STATE))
-        
+
         statistique = generer_statistique_partie()
         # print(statistique)
         
@@ -996,10 +1099,12 @@ def main():
         if reponse_revanche in reponses_negatives:
             statistique_seance = generer_statistique_seance()
             print(statistique_seance)
-            reponse_enregistrer_seance = input(f"Voulez-vous enregistrer le recapitulatif de ce seance dans un fichier ? ")
+            reponse_enregistrer_seance = input(f"Voulez-vous enregistrer le recapitulatif de ce seance dans un fichier ? (Y/n) ")
             if reponse_enregistrer_seance not in reponses_negatives:
                 chemin = input(f"Saisissez le chemin d'acces : ")
                 with open(chemin, 'a') as fichier:
                     fichier.write(statistique_seance)
-            
+
+    # root.destroy()
+    
 main()
