@@ -689,7 +689,7 @@ def placer_mot(plateau, bonus, joueur, x, y, dir, mot, mots_fr, dico):
 
     mot_score_sans_voisins = valeur_mot_avec_bonus(plateau, bonus, x, y, dir, mot_avec_jokers, dico)
     mot_score += mot_score_sans_voisins
-    if len(joueur["main"]) == 0:
+    if len(lettres_manq) == 7:
         joueur["n_scrabbles"] += 1
         mot_score += 50
     print(f"Vous avez joue '{mot}' avec une score de {mot_score_sans_voisins}")
@@ -1208,6 +1208,10 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                                 continue
 
                             score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
+                            
+                            if len(res) == 7:
+                                score += 50
+
                             sig = (mot, start_x, start_y, direction)
                             if sig not in checked_signatures:
                                 suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
