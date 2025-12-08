@@ -815,6 +815,7 @@ def init_joueurs(n):
     initialise `n` joeurs:
     nom -> le nom du joueur
     score -> le score du joueur
+
     main -> la main du joeur
     dtour -> l'action choisie pendant le dernier tour
     mots_places -> pairs de type (mot, score)
@@ -1165,13 +1166,14 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
             else:
                 valid_candidats = candidats
 
+            # on cherche la position de debut pour chaque mot
             for mot in valid_candidats:
                 if prefixe:
                     offset = len(prefixe)
                     if direction == "droit":
                         start_x = ax - offset
                         start_y = ay
-                    else:
+                    else: # direction == "bas"
                         start_x = ax
                         start_y = ay - offset
                 else:
@@ -1180,6 +1182,8 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                 
                 if prefixe: offsets_to_try = [0]
 
+                # s'il n y a pas de prefix,
+                # on peut choisir la case de debut
                 for i in offsets_to_try:
                     if not prefixe:
                         if direction == "droit":
@@ -1191,6 +1195,8 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
 
                     res = tester_placement(plateau, start_x, start_y, direction, mot)
 
+                    # res -- lettres dont on a besoin
+                    # pour placer le mot
                     if res:
                         if mot_jouable(res, main):
                             
@@ -1212,12 +1218,13 @@ def generer_toutes_suggestions(plateau, bonus, main, mots_fr, dico):
                             score = valeur_mot_avec_bonus(plateau, bonus, start_x, start_y, direction, mot, dico)
                             if len(res) == 7:
                                 score += 50
-                            
+
                             sig = (mot, start_x, start_y, direction)
                             if sig not in checked_signatures:
                                 suggestions.append({'mot': mot, 'x': start_x, 'y': start_y, 'dir': direction, 'score': score})
                                 checked_signatures.add(sig)
 
+    # on trie les suggestions
     suggestions.sort(key=lambda x: x['score'], reverse=True)
     return suggestions
 
@@ -1260,7 +1267,7 @@ def tour_joueur_IA(plateau, bonus, joueur, sac, dico, mots_fr):
                 if valeurs_main[j][1] > valeurs_main[j + 1][1]:
                     valeurs_main[j], valeurs_main[j + 1] = valeurs_main[j + 1], valeurs_main[j]
         
-        # on echange les trois lettres les plus mauvaises
+        # on echange les trois lettres plus pire
         if len(joueur["main"]) >= 3:
             jetons_a_echanger = [l for l, v in valeurs_main[:3]]
             
